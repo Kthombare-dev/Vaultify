@@ -16,6 +16,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 
+interface FiltersState {
+  branch: string;
+  semester: string;
+  academicYear: string;
+}
+
 // --- ShineBorder Component ---
 interface ShineBorderProps {
   children: ReactNode;
@@ -65,16 +71,16 @@ function FilterControls({
 }: {
   searchQuery: string;
   setSearchQuery: (q: string) => void;
-  filters: any;
-  setFilters: (f: any) => void;
+  filters: FiltersState;
+  setFilters: (f: FiltersState | ((prev: FiltersState) => FiltersState)) => void;
   papers: PaperData[];
 }) {
   const branches = useMemo(() => [...new Set(papers.map(p => p.branch))].sort(), [papers]);
   const semesters = useMemo(() => [...new Set(papers.map(p => p.semester))].sort((a, b) => parseInt(a) - parseInt(b)), [papers]);
   const academicYears = useMemo(() => [...new Set(papers.map(p => p.academicYear))].sort().reverse(), [papers]);
 
-  const handleFilterChange = (key: string, value: string) => {
-    setFilters((prev: any) => ({ ...prev, [key]: value === 'all' ? '' : value }));
+  const handleFilterChange = (key: keyof FiltersState, value: string) => {
+    setFilters((prev) => ({ ...prev, [key]: value === 'all' ? '' : value }));
   };
   
   const resetFilters = () => {
@@ -230,7 +236,7 @@ export default function BrowsePage() {
 
   // States for filtering
   const [searchQuery, setSearchQuery] = useState('');
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<FiltersState>({
     branch: '',
     semester: '',
     academicYear: '',

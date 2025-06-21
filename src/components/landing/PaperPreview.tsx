@@ -1,10 +1,11 @@
 'use client';
 
-import { motion } from 'framer-motion';
+import React from "react";
+import { motion } from "framer-motion";
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { FileText, Maximize, Minus, Printer, Download, X } from 'lucide-react';
+import { FileText, Download } from 'lucide-react';
 
 const PaperPreview = () => {
   return (
@@ -51,9 +52,6 @@ const PaperPreview = () => {
                 <span>CS-303_Data-Structures_June-2023.pdf</span>
               </div>
               <div className="flex items-center gap-3">
-                <Button variant="ghost" size="icon" className="h-6 w-6">
-                  <Printer className="h-4 w-4" />
-                </Button>
                 <Button variant="ghost" size="icon" className="h-6 w-6">
                   <Download className="h-4 w-4" />
                 </Button>

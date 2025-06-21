@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { uploadFile, savePaperDetails } from '@/lib/firebase-services';
+import { uploadFile, savePaperDetails, PaperDataToSave } from '@/lib/firebase-services';
 
 const branches = [
   "Computer Science Engineering (CSE)",
@@ -152,7 +152,7 @@ export default function UploadPage() {
       
       setUploadProgress(50);
       
-      const paperData: any = {
+      const paperData: PaperDataToSave = {
         subjectName: formData.subjectName,
         subjectCode: formData.subjectCode,
         semester: formData.semester,

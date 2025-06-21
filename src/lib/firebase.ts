@@ -8,19 +8,15 @@ import { getAuth, type Auth } from 'firebase/auth';
 // IMPORTANT: For production, it's highly recommended to store these values in
 // a .env.local file and access them via process.env.NEXT_PUBLIC_...
 const firebaseConfig = {
-  apiKey: "AIzaSyBoCm4Yz571mL6gKQqXbKoaEe0fprhrYSA",
-  authDomain: "valutify.firebaseapp.com",
-  projectId: "valutify",
-  storageBucket: "valutify.firebasestorage.app",
-  messagingSenderId: "860063548120",
-  appId: "1:860063548120:web:656d6ee8772c3c2d7d4dad",
-  measurementId: "G-68KNZTPGCM"
+  apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID
 };
 
 let app: FirebaseApp;
-let db: Firestore;
-let storage: FirebaseStorage;
-let auth: Auth;
 
 // Initialize Firebase only if it hasn't been initialized yet to prevent errors during
 // development with Next.js's Hot Module Replacement (HMR).
@@ -30,9 +26,9 @@ if (!getApps().length) {
   app = getApp();
 }
 
-db = getFirestore(app);
-storage = getStorage(app);
-auth = getAuth(app);
+const db = getFirestore(app);
+const storage = getStorage(app);
+const auth = getAuth(app);
 
 export { db, storage, auth };
 export default app; 

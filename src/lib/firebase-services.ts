@@ -29,9 +29,11 @@ export interface PaperData {
   fileName: string;
   fileUrl: string;
   fileSize: number;
-  uploadedAt: any;
+  uploadedAt?: { seconds: number; nanoseconds: number };
   downloadCount: number;
 }
+
+export type PaperDataToSave = Omit<PaperData, 'id' | 'uploadedAt' | 'downloadCount'>;
 
 /**
  * Uploads a file to a specific path in Firebase Storage.
@@ -42,8 +44,8 @@ export interface PaperData {
 export const uploadFile = async (file: File, path: string): Promise<string> => {
   try {
     const storageRef = ref(storage, path);
-    const snapshot = await uploadBytes(storageRef, file);
-    const downloadURL = await getDownloadURL(snapshot.ref);
+    await uploadBytes(storageRef, file);
+    const downloadURL = await getDownloadURL(storageRef);
     return downloadURL;
   } catch (error) {
     console.error('Error uploading file:', error);
@@ -56,13 +58,13 @@ export const uploadFile = async (file: File, path: string): Promise<string> => {
  * @param paperData The paper data to save.
  * @returns A promise that resolves with the ID of the newly created document.
  */
-export const savePaperDetails = async (paperData: Omit<PaperData, 'id' | 'uploadedAt' | 'downloadCount'>): Promise<string> => {
+export const savePaperDetails = async (paperData: PaperDataToSave): Promise<string> => {
   try {
     const docRef = await addDoc(collection(db, 'papers'), {
       ...paperData,
       uploadedAt: serverTimestamp(),
-      downloadCount: 0,
     });
+    console.log('Document written with ID: ', docRef.id);
     return docRef.id;
   } catch (error) {
     console.error('Error saving paper details:', error);
