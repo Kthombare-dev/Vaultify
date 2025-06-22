@@ -38,6 +38,7 @@ export interface PaperDataToSave {
 
 export interface PaperData extends PaperDataToSave {
   id: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   uploadedAt: Timestamp | null;
 }
 
