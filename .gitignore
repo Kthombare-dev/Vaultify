@@ -35,3 +35,7 @@ pnpm-debug.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Service account files
+format-service-account.js
+.env*.local
