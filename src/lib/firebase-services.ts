@@ -6,13 +6,16 @@ import {
   orderBy, 
   serverTimestamp,
   DocumentData,
-  QueryDocumentSnapshot
+  QueryDocumentSnapshot,
+  Timestamp,
+  Firestore
 } from 'firebase/firestore';
 import { 
   ref, 
   uploadBytes, 
   getDownloadURL,
-  UploadResult 
+  UploadResult,
+  FirebaseStorage
 } from 'firebase/storage';
 import { db, storage } from './firebase';
 
@@ -35,11 +38,15 @@ export interface PaperDataToSave {
 
 export interface PaperData extends PaperDataToSave {
   id: string;
-  uploadedAt: any;
+  uploadedAt: Timestamp | null;
 }
 
 // Upload file to Firebase Storage
 export const uploadFile = async (file: File, filePath: string): Promise<string> => {
+  if (!storage) {
+    throw new Error('Firebase Storage is not initialized');
+  }
+
   try {
     const storageRef = ref(storage, filePath);
     const uploadResult: UploadResult = await uploadBytes(storageRef, file);
@@ -53,6 +60,10 @@ export const uploadFile = async (file: File, filePath: string): Promise<string> 
 
 // Save paper details to Firestore
 export const savePaperDetails = async (paperData: PaperDataToSave): Promise<string> => {
+  if (!db) {
+    throw new Error('Firebase Firestore is not initialized');
+  }
+
   try {
     const docRef = await addDoc(collection(db, 'papers'), {
       ...paperData,
@@ -67,6 +78,10 @@ export const savePaperDetails = async (paperData: PaperDataToSave): Promise<stri
 
 // Get all papers from Firestore
 export const getAllPapers = async (): Promise<PaperData[]> => {
+  if (!db) {
+    throw new Error('Firebase Firestore is not initialized');
+  }
+
   try {
     const papersQuery = query(
       collection(db, 'papers'),
