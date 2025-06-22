@@ -11,15 +11,36 @@ function validateEnvironmentVariables() {
     'FIREBASE_CLIENT_CERT_URL'
   ];
 
+  const envVarStatus = requiredVars.reduce((acc, varName) => {
+    acc[varName] = {
+      exists: varName in process.env,
+      isEmpty: !process.env[varName],
+      value: varName === 'FIREBASE_PRIVATE_KEY' 
+        ? process.env[varName] ? `${process.env[varName].length} chars` : 'undefined'
+        : process.env[varName] ? 'exists' : 'undefined'
+    };
+    return acc;
+  }, {} as Record<string, { exists: boolean; isEmpty: boolean; value: string }>);
+
+  console.log('Environment variables status:', envVarStatus);
+
   const missingVars = requiredVars.filter(varName => !process.env[varName]);
   
   if (missingVars.length > 0) {
-    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}\nEnvironment status: ${JSON.stringify(envVarStatus, null, 2)}`);
   }
 }
 
 function formatPrivateKey(key: string | undefined): string {
-  if (!key) throw new Error('FIREBASE_PRIVATE_KEY is undefined');
+  if (!key) {
+    console.error('Private key validation failed:', {
+      keyExists: key !== undefined,
+      keyLength: key?.length,
+      isString: typeof key === 'string',
+      containsNewlines: key?.includes('\\n') || key?.includes('\n')
+    });
+    throw new Error('FIREBASE_PRIVATE_KEY is undefined or invalid');
+  }
   
   // Handle both formats of line breaks that Vercel might use
   if (key.includes('\\n')) {
