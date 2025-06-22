@@ -3,6 +3,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import { HeroUIProvider } from '@heroui/react';
 import { Navbar } from './components/Navbar';
+import Footer from './components/layout/Footer';
 
 const inter = Inter({ subsets: ['latin'] });
 
@@ -18,12 +19,13 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={inter.className}>
+      <body className={`${inter.className} flex flex-col min-h-screen`}>
         <HeroUIProvider>
           <Navbar />
-          <main className="min-h-screen">
+          <main className="flex-grow">
             {children}
           </main>
+          <Footer />
         </HeroUIProvider>
       </body>
     </html>

@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Download, Clock, Code, Library, Calendar, FileType, Eye, Loader2, Search, X } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
-import { getAllPapers, PaperData } from '@/lib/firebase-services';
+import { getAllPapers, PaperData } from '@/lib/unified-services';
 import { formatDistanceToNow } from 'date-fns';
 import { PdfViewer } from '@/components/PdfViewer';
 import { cn } from '@/lib/utils';
@@ -261,8 +261,8 @@ export default function BrowsePage() {
     const fetchPapers = async () => {
       try {
         setLoading(true);
-        const fetchedPapers = await getAllPapers();
-        setPapers(fetchedPapers);
+        const papersData = await getAllPapers();
+        setPapers(papersData);
       } catch (err) {
         setError('Failed to fetch papers. Please try again later.');
         console.error(err);
@@ -301,7 +301,7 @@ export default function BrowsePage() {
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
               Browse Question Papers
             </h1>
-            <p className="text-gray-600 dark:text-gray-300">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               Explore the collection of papers uploaded by the community.
             </p>
           </motion.div>

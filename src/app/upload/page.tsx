@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { uploadFile, savePaperDetails, PaperDataToSave } from '@/lib/firebase-services';
+import { uploadFile, savePaperDetails, PaperDataToSave } from '@/lib/unified-services';
 
 const branches = [
   "Computer Science Engineering (CSE)",
@@ -180,7 +180,6 @@ export default function UploadPage() {
       
       setUploadProgress(100);
       setUploadStatus('success');
-      
     } catch (error) {
       console.error('Upload error:', error);
       setUploadStatus('error');
@@ -201,7 +200,7 @@ export default function UploadPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
             Upload Question Paper
           </h1>
-          <p className="text-gray-600 dark:text-gray-300">
+          <p className="text-gray-600 dark:text-gray-300 mb-4">
             Share your question papers with the community and help fellow students
           </p>
         </motion.div>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Github, Twitter } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 const Footer = () => {
   return (
@@ -54,9 +55,22 @@ const Footer = () => {
           </div>
         </div>
 
-        <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8">
-          <p className="text-base text-gray-400 text-center">
+        <div className="mt-8 border-t border-gray-200 dark:border-gray-700 pt-8 flex flex-col items-center gap-4">
+          <p className="text-base text-gray-500 text-center">
             &copy; {new Date().getFullYear()} Vaultify. All rights reserved.
+          </p>
+          <p className="text-sm text-gray-500 flex items-center gap-1.5">
+            Created with ❤️ by
+            <Button variant="link" asChild className="p-0 h-auto text-sm font-semibold">
+              <a
+                href="https://linktr.ee/Kthombare"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gray-700 dark:text-gray-200 hover:text-primary"
+              >
+                Ketan Thombare
+              </a>
+            </Button>
           </p>
         </div>
       </div>
