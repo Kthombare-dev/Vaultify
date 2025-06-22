@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Search } from '@/components/ui/search';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, Star, Users, Clock, FileText } from 'lucide-react';
+import { ArrowRight, Star, Users, Clock, FileText, Brain } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import Link from 'next/link';
 import { useState } from 'react';
@@ -26,10 +26,10 @@ const Hero = () => {
   };
 
   const stats = [
-    { label: 'Users', value: '10K+', icon: Users },
-    { label: 'Papers', value: '50K+', icon: FileText },
-    { label: 'Hours Saved', value: '100K+', icon: Clock },
-    { label: 'Rating', value: '4.9', icon: Star },
+    { label: 'Papers Available', value: '1000+', icon: FileText },
+    { label: 'AI Powered', value: '24/7', icon: Brain },
+    { label: 'Free Access', value: '100%', icon: Users },
+    { label: 'Response Time', value: '<1s', icon: Clock },
   ];
 
   const loadingVariants = {
@@ -138,7 +138,7 @@ const Hero = () => {
         >
           Your Academic Resource
           <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 mt-2">
-            <AuroraText>Vaultify</AuroraText>
+            <AuroraText>Papers & AI Study Assistant</AuroraText>
           </span>
         </motion.h1>
 
@@ -147,8 +147,8 @@ const Hero = () => {
           animate={isLoading ? "loading" : "loaded"}
           className="mt-6 text-lg sm:text-xl text-gray-600 dark:text-gray-300 max-w-3xl mx-auto leading-relaxed"
         >
-          Access and share previous year exam papers, study materials, and academic resources all in one secure platform. 
-          Built for students, by students.
+          Access a vast collection of previous year mid-semester papers for free, enhanced with 
+          AI-powered study assistance. Browse, search, and master your subjects with intelligent support.
         </motion.p>
 
         {/* Search Section */}
@@ -162,7 +162,7 @@ const Hero = () => {
               <div className="flex flex-col sm:flex-row gap-2">
                 <div className="flex-1">
                   <Search
-                    placeholder="Search for papers, subjects, or branches..."
+                    placeholder="Search papers by subject, year, or ask questions..."
                     className="border-0 shadow-none focus-visible:ring-0"
                     onSearch={handleSearch}
                     value={searchTerm}
@@ -171,7 +171,7 @@ const Hero = () => {
                   />
                 </div>
                 <Button size="lg" className="px-8" disabled={isLoading}>
-                  Search
+                  Search & Ask
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </Button>
               </div>
@@ -233,16 +233,16 @@ const Hero = () => {
           className="mt-12 flex flex-wrap items-center justify-center gap-6 text-sm text-gray-500 dark:text-gray-400"
         >
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">🔒 Secure</Badge>
+            <Badge variant="outline" className="text-xs">📚 Free Papers</Badge>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">⚡ Fast</Badge>
+            <Badge variant="outline" className="text-xs">🤖 AI Assistant</Badge>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">🆓 Free</Badge>
+            <Badge variant="outline" className="text-xs">🎯 Mid Sems</Badge>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="text-xs">🌍 Global</Badge>
+            <Badge variant="outline" className="text-xs">⚡ Quick Access</Badge>
           </div>
         </motion.div>
       </motion.div>

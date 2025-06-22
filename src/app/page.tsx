@@ -1,7 +1,7 @@
 import Hero from "@/components/landing/Hero";
 import Features from "@/components/landing/Features";
 import PaperPreview from "@/components/landing/PaperPreview";
-import WhyVaultify from "@/components/landing/WhyVaultify";
+// import WhyVaultify from "@/components/landing/WhyVaultify";
 
 export default function Home() {
   return (
@@ -9,7 +9,7 @@ export default function Home() {
       <Hero />
       <Features />
       <PaperPreview />
-      <WhyVaultify />
+      {/* <WhyVaultify /> */}
     </main>
   );
 }

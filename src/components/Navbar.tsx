@@ -53,6 +53,7 @@ export function Navbar() {
         <Link href="/" className={cn("text-sm font-medium transition-colors hover:text-primary", pathname === '/' ? "text-primary underline underline-offset-4" : "text-muted-foreground")}>Home</Link>
         <Link href="/upload" className={cn("text-sm font-medium transition-colors hover:text-primary", pathname === '/upload' ? "text-primary underline underline-offset-4" : "text-muted-foreground")}>Upload</Link>
         <Link href="/browse" className={cn("text-sm font-medium transition-colors hover:text-primary", pathname === '/browse' ? "text-primary underline underline-offset-4" : "text-muted-foreground")}>Browse Papers</Link>
+        <Link href="/study-assistant" className={cn("text-sm font-medium transition-colors hover:text-primary", pathname === '/study-assistant' ? "text-primary underline underline-offset-4" : "text-muted-foreground")}>Study Assistant</Link>
       </div>
 
       <div className="flex items-center gap-4 md:hidden">
@@ -67,6 +68,7 @@ export function Navbar() {
               <Link href="/" className={cn("w-full text-lg font-semibold transition-colors hover:text-primary", pathname === '/' ? "text-primary underline underline-offset-4" : "text-muted-foreground")}>Home</Link>
               <Link href="/upload" className={cn("w-full text-lg font-semibold transition-colors hover:text-primary", pathname === '/upload' ? "text-primary underline underline-offset-4" : "text-muted-foreground")}>Upload</Link>
               <Link href="/browse" className={cn("w-full text-lg font-semibold transition-colors hover:text-primary", pathname === '/browse' ? "text-primary underline underline-offset-4" : "text-muted-foreground")}>Browse Papers</Link>
+              <Link href="/study-assistant" className={cn("w-full text-lg font-semibold transition-colors hover:text-primary", pathname === '/study-assistant' ? "text-primary underline underline-offset-4" : "text-muted-foreground")}>Study Assistant</Link>
             </div>
           </SheetContent>
         </Sheet>

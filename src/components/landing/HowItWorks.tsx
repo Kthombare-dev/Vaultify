@@ -4,31 +4,31 @@ import { motion, useInView, Variants } from 'framer-motion';
 import { useRef, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { FileUp, Search, BookOpen, Share2 } from 'lucide-react';
+import { FileUp, Search, BookOpen, Brain } from 'lucide-react';
 
 const steps = [
   {
-    icon: FileUp,
-    title: "Upload Your PDF",
-    description: "Simply drag and drop your question papers or click to upload from your device",
+    icon: Search,
+    title: "Find Papers",
+    description: "Browse or search through our collection of free mid-semester papers",
     badge: "Step 1"
   },
   {
-    icon: Search,
-    title: "Smart Processing",
-    description: "Our AI automatically extracts and organizes questions for easy searching",
+    icon: FileUp,
+    title: "Access or Upload",
+    description: "Download papers you need or contribute by uploading your own",
     badge: "Step 2"
   },
   {
-    icon: BookOpen,
-    title: "Start Studying",
-    description: "Search for specific topics, questions, or concepts instantly",
+    icon: Brain,
+    title: "Get AI Help",
+    description: "Ask questions about any concept or topic in the papers",
     badge: "Step 3"
   },
   {
-    icon: Share2,
-    title: "Share & Collaborate",
-    description: "Share papers with classmates and study together effectively",
+    icon: BookOpen,
+    title: "Excel in Exams",
+    description: "Practice with past papers and improve with AI guidance",
     badge: "Step 4"
   }
 ];
@@ -122,10 +122,10 @@ const HowItWorks = () => {
             className="text-center"
           >
             <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              How It Works
+              Your Path to Success
             </h2>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Get started in minutes with our simple 4-step process
+              Access papers and get AI assistance in four simple steps
             </p>
           </motion.div>
 

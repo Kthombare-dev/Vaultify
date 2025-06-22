@@ -4,44 +4,44 @@ import { motion, useInView, Variants } from 'framer-motion';
 import { useRef, useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Search, Brain, Clock, Target, Users, Zap, Shield } from 'lucide-react';
+import { Search, Brain, Clock, Target, Users, Zap, Shield, FileText } from 'lucide-react';
 
 const features = [
   {
+    icon: FileText,
+    title: "Free Paper Access",
+    description: "Browse and download previous year mid-semester papers completely free",
+    badge: "Free"
+  },
+  {
     icon: Brain,
-    title: "AI-Powered Search",
-    description: "Find exactly what you need with intelligent search that understands context",
+    title: "AI Study Assistant",
+    description: "Get instant answers and explanations about any concept in your papers",
     badge: "Smart"
   },
   {
-    icon: Clock,
-    title: "Save Time",
-    description: "Reduce study time by 50% with instant access to organized content",
-    badge: "Fast"
+    icon: Search,
+    title: "Smart Search",
+    description: "Find papers by subject, year, or specific topics with intelligent search",
+    badge: "Search"
   },
   {
     icon: Target,
-    title: "Better Results",
-    description: "Improve your exam scores with targeted practice and revision",
-    badge: "Effective"
-  },
-  {
-    icon: Users,
-    title: "Collaborative Learning",
-    description: "Study with classmates and share knowledge effectively",
-    badge: "Social"
+    title: "Exam Preparation",
+    description: "Practice with past papers and get AI guidance for better preparation",
+    badge: "Practice"
   },
   {
     icon: Zap,
-    title: "Instant Access",
-    description: "Access your papers anywhere, anytime with cloud synchronization",
-    badge: "Convenient"
+    title: "Easy Upload",
+    description: "Contribute to the community by easily uploading your own papers",
+    badge: "Share"
   },
   {
     icon: Shield,
-    title: "Secure & Private",
-    description: "Your data is encrypted and protected with enterprise-grade security",
-    badge: "Safe"
+    title: "Private & Secure",
+    description: "Your papers and conversations are encrypted and stored securely",
+    badge: "Security"
   }
 ];
 
@@ -134,10 +134,10 @@ const Features = () => {
             className="text-center"
           >
             <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-white sm:text-4xl">
-              Everything You Need to Excel
+              Papers & AI Combined
             </h2>
             <p className="mt-4 text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-              Powerful features designed to make your study sessions more productive and efficient.
+              Access free papers and get intelligent assistance for comprehensive exam preparation
             </p>
           </motion.div>
 

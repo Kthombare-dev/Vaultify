@@ -39,10 +39,10 @@ function FilterControls({
   setFilters: (f: FiltersState | ((prev: FiltersState) => FiltersState)) => void;
   papers: PaperData[];
 }) {
-  const branches = useMemo(() => [...new Set(papers.map(p => p.branch))].sort(), [papers]);
-  const semesters = useMemo(() => [...new Set(papers.map(p => p.semester))].sort((a, b) => parseInt(a) - parseInt(b)), [papers]);
-  const academicYears = useMemo(() => [...new Set(papers.map(p => p.academicYear))].sort().reverse(), [papers]);
-  const paperTypes = useMemo(() => [...new Set(papers.map(p => p.paperType))].sort(), [papers]);
+  const branches = useMemo(() => Array.from(new Set(papers.map(p => p.branch))).sort(), [papers]);
+  const semesters = useMemo(() => Array.from(new Set(papers.map(p => p.semester))).sort((a, b) => parseInt(a) - parseInt(b)), [papers]);
+  const academicYears = useMemo(() => Array.from(new Set(papers.map(p => p.academicYear))).sort().reverse(), [papers]);
+  const paperTypes = useMemo(() => Array.from(new Set(papers.map(p => p.paperType))).sort(), [papers]);
 
   const handleFilterChange = (key: keyof FiltersState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value === 'all' ? '' : value }));
