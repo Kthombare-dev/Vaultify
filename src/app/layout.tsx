@@ -9,7 +9,12 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Vaultify',
-  description: 'A platform for sharing and accessing previous year exam papers.',
+  description: 'Your AI-powered study assistant and paper repository',
+  icons: {
+    icon: '/Icon.ico',
+    shortcut: '/Icon.ico',
+    apple: '/Icon.ico',
+  }
 };
 
 export default function RootLayout({

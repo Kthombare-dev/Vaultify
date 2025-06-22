@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getFirestore, DocumentData } from "firebase-admin/firestore";
-import { initializeFirebaseAdmin } from "@/lib/firebase-admin";
+import { Firestore } from "firebase-admin/firestore";
+import { initAdmin } from "@/lib/firebase-admin";
 
-interface Paper extends DocumentData {
+interface Paper {
   title: string;
   subjectName: string;
   subjectCode: string;
@@ -13,20 +13,26 @@ interface Paper extends DocumentData {
   academicYear: string;
 }
 
+export const dynamic = 'force-dynamic';
+
 export async function GET() {
   console.log("Starting papers list API request");
   
   try {
-    // Initialize Firebase Admin
+    // Initialize Firebase Admin and get Firestore instance
     console.log("Initializing Firebase Admin...");
-    initializeFirebaseAdmin();
-    
-    console.log("Getting Firestore instance...");
-    const db = getFirestore();
+    const db = initAdmin() as Firestore;
     
     console.log("Fetching papers from Firestore...");
-    const papersRef = db.collection("papers");
-    const papersSnapshot = await papersRef.get();
+    const papersSnapshot = await db.collection("papers").get();
+    
+    if (!papersSnapshot.docs) {
+      console.log("No papers found");
+      return NextResponse.json({
+        papers: [],
+        message: "No papers found"
+      });
+    }
     
     console.log(`Found ${papersSnapshot.docs.length} papers`);
     const papers = papersSnapshot.docs.map(doc => {
@@ -53,6 +59,8 @@ export async function GET() {
     });
   } catch (error: any) {
     console.error("Error in papers list API:", error);
+    console.error("Error stack:", error.stack);
+    
     // Return a more detailed error response
     return NextResponse.json(
       { 

@@ -1,55 +1,80 @@
-import { getApps, initializeApp, cert } from "firebase-admin/app";
-import type { ServiceAccount } from "firebase-admin";
+import { initializeApp, getApps, cert } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 
-export function initializeFirebaseAdmin() {
+function validateEnvironmentVariables() {
+  const requiredVars = [
+    'FIREBASE_PROJECT_ID',
+    'FIREBASE_PRIVATE_KEY_ID',
+    'FIREBASE_PRIVATE_KEY',
+    'FIREBASE_CLIENT_EMAIL',
+    'FIREBASE_CLIENT_ID',
+    'FIREBASE_CLIENT_CERT_URL'
+  ];
+
+  const missingVars = requiredVars.filter(varName => !process.env[varName]);
+  
+  if (missingVars.length > 0) {
+    throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+  }
+}
+
+function formatPrivateKey(key: string | undefined): string {
+  if (!key) throw new Error('FIREBASE_PRIVATE_KEY is undefined');
+  
+  // Handle both formats of line breaks that Vercel might use
+  if (key.includes('\\n')) {
+    return key.replace(/\\n/g, '\n');
+  }
+  
+  // If the key is already properly formatted or uses actual line breaks
+  return key;
+}
+
+const firebaseAdminConfig = {
+  type: 'service_account',
+  project_id: process.env.FIREBASE_PROJECT_ID,
+  private_key_id: process.env.FIREBASE_PRIVATE_KEY_ID,
+  private_key: formatPrivateKey(process.env.FIREBASE_PRIVATE_KEY),
+  client_email: process.env.FIREBASE_CLIENT_EMAIL,
+  client_id: process.env.FIREBASE_CLIENT_ID,
+  auth_uri: 'https://accounts.google.com/o/oauth2/auth',
+  token_uri: 'https://oauth2.googleapis.com/token',
+  auth_provider_x509_cert_url: 'https://www.googleapis.com/oauth2/v1/certs',
+  client_x509_cert_url: process.env.FIREBASE_CLIENT_CERT_URL,
+};
+
+export function initAdmin() {
   try {
-    // Check if already initialized
-    if (getApps().length > 0) {
-      console.log("Firebase Admin already initialized");
-      return;
-    }
-
-    console.log("Starting Firebase Admin initialization...");
-    
-    const serviceAccountStr = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
-    if (!serviceAccountStr) {
-      console.error("FIREBASE_SERVICE_ACCOUNT_KEY is missing in environment variables");
-      throw new Error("FIREBASE_SERVICE_ACCOUNT_KEY is not defined in environment variables");
-    }
-
-    let serviceAccount: ServiceAccount;
-    try {
-      serviceAccount = JSON.parse(serviceAccountStr);
-      console.log("Successfully parsed service account JSON. Project ID:", serviceAccount.projectId);
+    if (getApps().length === 0) {
+      validateEnvironmentVariables();
       
-      // Log available fields for debugging
-      console.log("Available service account fields:", Object.keys(serviceAccount));
-      
-      // Validate required fields
-      const requiredFields = ['projectId', 'clientEmail', 'privateKey'];
-      const missingFields = requiredFields.filter(field => !serviceAccount[field as keyof ServiceAccount]);
-      
-      if (missingFields.length > 0) {
-        console.error("Missing required fields in service account:", missingFields);
-        throw new Error(`Service account is missing required fields: ${missingFields.join(', ')}`);
-      }
+      console.log('Initializing Firebase Admin with config:', {
+        projectId: firebaseAdminConfig.project_id,
+        clientEmail: firebaseAdminConfig.client_email,
+        privateKeyId: firebaseAdminConfig.private_key_id,
+        hasPrivateKey: !!firebaseAdminConfig.private_key,
+        privateKeyLength: firebaseAdminConfig.private_key?.length
+      });
 
-      console.log("All required fields present in service account");
-    } catch (error) {
-      console.error("Failed to parse service account JSON:", error);
-      throw new Error("Failed to parse FIREBASE_SERVICE_ACCOUNT_KEY. Make sure it's a valid JSON string");
+      initializeApp({
+        credential: cert(firebaseAdminConfig),
+      });
+
+      // Initialize Firestore to verify connection
+      const db = getFirestore();
+      console.log('Firebase Admin initialized successfully');
+      return db;
     }
-
-    console.log("Initializing Firebase Admin with project ID:", serviceAccount.projectId);
-    
-    initializeApp({
-      credential: cert(serviceAccount),
-      databaseURL: process.env.FIREBASE_DATABASE_URL || `https://${serviceAccount.projectId}.firebaseio.com`,
-    });
-
-    console.log("Firebase Admin successfully initialized");
+    return getFirestore();
   } catch (error) {
-    console.error("Error in Firebase Admin initialization:", error);
+    console.error('Error initializing Firebase Admin:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      });
+    }
     throw error;
   }
 } 
