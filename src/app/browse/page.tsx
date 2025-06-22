@@ -15,6 +15,8 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
+import ShineBorder from '@/components/magicui/shine-border';
+import { MagicCard } from "@/components/magicui/magic-card";
 
 interface FiltersState {
   branch: string;
@@ -22,45 +24,6 @@ interface FiltersState {
   academicYear: string;
   paperType: string;
 }
-
-// --- ShineBorder Component ---
-interface ShineBorderProps {
-  children: ReactNode;
-  className?: string;
-  color?: string[];
-  borderWidth?: number;
-  duration?: number;
-}
-
-const ShineBorder = ({
-  children,
-  className,
-  color = ["#A07CFE", "#FE8A71", "#FED7AA"],
-  borderWidth = 1,
-  duration = 7,
-}: ShineBorderProps) => {
-  return (
-    <div
-      style={
-        {
-          "--shine-color": color.join(","),
-          "--shine-border-width": `${borderWidth}px`,
-          "--shine-duration": `${duration}s`,
-        } as CSSProperties
-      }
-      className={cn(
-        "relative w-full rounded-lg",
-        "before:content-[''] before:w-[calc(100%_+_var(--shine-border-width))] before:h-[calc(100%_+_var(--shine-border-width))] before:p-[--shine-border-width] before:absolute before:-top-[--shine-border-width] before:-left-[--shine-border-width] before:z-[-1]",
-        "before:rounded-[inherit] before:bg-[conic-gradient(from_var(--shining-angle),var(--shine-color)_0%,var(--shine-color)_10%,transparent_20%,transparent_80%,var(--shine-color)_90%)]",
-        "before:animate-[shine_var(--shine-duration)_linear_infinite]",
-        className
-      )}
-    >
-      {children}
-    </div>
-  );
-};
-// --- End ShineBorder Component ---
 
 // --- Filter Controls ---
 function FilterControls({
@@ -150,6 +113,39 @@ function FilterControls({
 function PaperCard({ paper, onView }: { paper: PaperData, onView: (paper: PaperData) => void }) {
   const { subjectName, subjectCode, semester, academicYear, branch, paperType, fileUrl, uploadedAt, fileName: paperFileName } = paper;
   const [isDownloading, setIsDownloading] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Define border colors based on paper type
+  const getBorderColors = (type: string) => {
+    switch (type) {
+      case 'mid-term':
+        return ["#60A5FA", "#3B82F6", "#2563EB"]; // Blue shades
+      case 'end-term':
+        return ["#F87171", "#EF4444", "#DC2626"]; // Red shades
+      case 'assignment':
+        return ["#34D399", "#10B981", "#059669"]; // Green shades
+      case 'notes':
+        return ["#A78BFA", "#8B5CF6", "#7C3AED"]; // Purple shades
+      default:
+        return ["#A07CFE", "#FE8A71", "#FED7AA"]; // Default colors
+    }
+  };
+
+  // Get glow color based on paper type
+  const getGlowColor = (type: string) => {
+    switch (type) {
+      case 'mid-term':
+        return 'rgba(59, 130, 246, 0.2)'; // Blue glow
+      case 'end-term':
+        return 'rgba(239, 68, 68, 0.2)'; // Red glow
+      case 'assignment':
+        return 'rgba(16, 185, 129, 0.2)'; // Green glow
+      case 'notes':
+        return 'rgba(139, 92, 246, 0.2)'; // Purple glow
+      default:
+        return 'rgba(160, 124, 254, 0.2)'; // Default glow
+    }
+  };
 
   const getUploadedTime = () => {
     if (uploadedAt && uploadedAt.seconds) {
@@ -161,15 +157,26 @@ function PaperCard({ paper, onView }: { paper: PaperData, onView: (paper: PaperD
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      const fileName = paperFileName || `${subjectName.replace(/ /g, '_')}_${subjectCode}.pdf`;
-      const proxyUrl = `/api/download?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(fileName)}`;
+      // Get file extension from original fileName or from fileUrl
+      const fileExtension = paperFileName 
+        ? paperFileName.substring(paperFileName.lastIndexOf('.')) 
+        : fileUrl.substring(fileUrl.lastIndexOf('.'));
+
+      // Create download name with correct extension
+      const downloadName = paperFileName || `${subjectName.replace(/ /g, '_')}_${subjectCode}${fileExtension}`;
+
+      const proxyUrl = `/api/download?url=${encodeURIComponent(fileUrl)}&name=${encodeURIComponent(downloadName)}`;
       const response = await fetch(proxyUrl);
       if (!response.ok) throw new Error('Network response was not ok');
+
+      // Get content type from response
+      const contentType = response.headers.get('content-type');
       const blob = await response.blob();
-      const objectUrl = window.URL.createObjectURL(blob);
+      const objectUrl = window.URL.createObjectURL(new Blob([blob], { type: contentType || 'application/octet-stream' }));
+      
       const link = document.createElement('a');
       link.href = objectUrl;
-      link.setAttribute('download', fileName);
+      link.setAttribute('download', downloadName);
       document.body.appendChild(link);
       link.click();
       window.URL.revokeObjectURL(objectUrl);
@@ -182,59 +189,144 @@ function PaperCard({ paper, onView }: { paper: PaperData, onView: (paper: PaperD
   };
 
   return (
-    <ShineBorder className="rounded-xl h-full" borderWidth={1} duration={12}>
-      <Card className="flex flex-col h-full bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm shadow-lg transition-shadow duration-300 rounded-xl border border-slate-200/50 dark:border-slate-800/50">
-        <CardHeader className="pb-4">
-          <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-100">{subjectName}</CardTitle>
-          <CardDescription className="pt-1">
-            <Badge variant="secondary" className="bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300 border-blue-200/50 dark:border-blue-800/50 font-semibold">{subjectCode}</Badge>
-          </CardDescription>
-        </CardHeader>
+    <motion.div
+      whileHover={{ scale: 1.02 }}
+      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      onHoverStart={() => setIsHovered(true)}
+      onHoverEnd={() => setIsHovered(false)}
+      style={{
+        transformStyle: "preserve-3d",
+        perspective: "1000px"
+      }}
+    >
+      <ShineBorder 
+        color={getBorderColors(paperType)}
+        borderWidth={2}
+        duration={isHovered ? 4 : 7}
+        className={cn(
+          "rounded-xl h-full transition-all duration-300",
+          isHovered && "shadow-[0_0_30px] shadow-current/25"
+        )}
+      >
+        <MagicCard>
+        <Card 
+          className={cn(
+            "flex flex-col h-full bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm",
+            "transition-all duration-300 ease-out",
+            "rounded-xl border border-slate-200/50 dark:border-slate-800/50",
+            "hover:bg-white/80 dark:hover:bg-slate-900/80",
+            isHovered && [
+              "shadow-2xl",
+              `shadow-${getGlowColor(paperType)}`,
+              "transform-gpu",
+              "translate-z-10"
+            ]
+          )}
+        >
+          <CardHeader className="pb-4 relative">
+            <motion.div
+              initial={false}
+              animate={isHovered ? { scale: 1.02, y: -2 } : { scale: 1, y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <CardTitle className="text-lg font-bold text-slate-800 dark:text-slate-100">
+                {subjectName}
+              </CardTitle>
+              <CardDescription className="pt-1">
+                <Badge 
+                  variant="secondary" 
+                  className={cn(
+                    "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300",
+                    "border-blue-200/50 dark:border-blue-800/50 font-semibold",
+                    "transition-transform duration-300",
+                    isHovered && "scale-105"
+                  )}
+                >
+                  {subjectCode}
+                </Badge>
+              </CardDescription>
+            </motion.div>
+          </CardHeader>
 
-        <CardContent className="flex-grow">
-           <Separator className="mb-4 bg-slate-200/80 dark:bg-slate-700/80" />
-           <div className="space-y-3">
-            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+          <CardContent className="flex-grow">
+            <Separator className={cn(
+              "mb-4 bg-slate-200/80 dark:bg-slate-700/80",
+              "transition-transform duration-300",
+              isHovered && "scale-x-105"
+            )} />
+            <motion.div 
+              className="space-y-3"
+              animate={isHovered ? { y: -2 } : { y: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
                 <Library size={16} className="text-slate-500" />
                 <span className="font-medium">{branch}</span>
-            </div>
-            <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
+              </div>
+              <div className="flex items-center gap-3 text-sm text-slate-600 dark:text-slate-300">
                 <FileType size={16} className="text-slate-500" />
                 <span className="font-medium capitalize">{paperType?.replace('-', ' ')}</span>
-            </div>
-            <div className="grid grid-cols-2 gap-3 text-sm">
+              </div>
+              <div className="grid grid-cols-2 gap-3 text-sm">
                 <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-                    <Code size={16} className="text-slate-500" />
-                    <span className="font-medium">Sem: {semester}</span>
+                  <Code size={16} className="text-slate-500" />
+                  <span className="font-medium">Sem: {semester}</span>
                 </div>
                 <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
-                    <Calendar size={16} className="text-slate-500" />
-                    <span className="font-medium">{academicYear}</span>
+                  <Calendar size={16} className="text-slate-500" />
+                  <span className="font-medium">{academicYear}</span>
                 </div>
-            </div>
-          </div>
-        </CardContent>
+              </div>
+            </motion.div>
+          </CardContent>
 
-        <CardFooter className="mt-auto flex justify-between items-center p-4 border-t border-slate-200/50 dark:border-slate-800/50">
-          <p className="flex items-center gap-2 text-xs text-gray-500">
-            <Clock size={12} />
-            <span>{getUploadedTime()}</span>
-          </p>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => onView(paper)}>
-              <Eye className="mr-2 h-4 w-4" /> View
-            </Button>
-            <Button size="sm" onClick={handleDownload} disabled={isDownloading}>
-              {isDownloading ? (
-                <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> ...</>
-              ) : (
-                <><Download className="mr-2 h-4 w-4" /> Download</>
-              )}
-            </Button>
-          </div>
-        </CardFooter>
-      </Card>
-    </ShineBorder>
+          <CardFooter className={cn(
+            "mt-auto flex justify-between items-center p-4",
+            "border-t border-slate-200/50 dark:border-slate-800/50",
+            "transition-all duration-300",
+            isHovered && "bg-slate-50/50 dark:bg-slate-800/50 rounded-b-xl"
+          )}>
+            <p className="flex items-center gap-2 text-xs text-gray-500">
+              <Clock size={12} />
+              <span>{getUploadedTime()}</span>
+            </p>
+            <motion.div 
+              className="flex items-center gap-2"
+              animate={isHovered ? { scale: 1.05 } : { scale: 1 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onView(paper)}
+                className={cn(
+                  "transition-colors duration-300",
+                  isHovered && "bg-white dark:bg-slate-800"
+                )}
+              >
+                <Eye className="mr-2 h-4 w-4" /> View
+              </Button>
+              <Button 
+                size="sm" 
+                onClick={handleDownload} 
+                disabled={isDownloading}
+                className={cn(
+                  "transition-all duration-300",
+                  isHovered && "shadow-md"
+                )}
+              >
+                {isDownloading ? (
+                  <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> ...</>
+                ) : (
+                  <><Download className="mr-2 h-4 w-4" /> Download</>
+                )}
+              </Button>
+            </motion.div>
+          </CardFooter>
+        </Card>
+        </MagicCard>
+      </ShineBorder>
+    </motion.div>
   );
 }
 

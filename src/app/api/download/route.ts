@@ -1,34 +1,35 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const fileUrl = searchParams.get('url');
-  const fileName = searchParams.get('name') || 'paper.pdf';
-
-  if (!fileUrl) {
-    return new NextResponse('URL parameter is missing', { status: 400 });
-  }
-
+export async function GET(request: NextRequest) {
   try {
-    // Fetch the file from the Firebase URL on the server
-    const fileResponse = await fetch(fileUrl);
+    const url = request.nextUrl.searchParams.get('url');
+    const name = request.nextUrl.searchParams.get('name');
 
-    if (!fileResponse.ok) {
-      return new NextResponse('Failed to fetch the file from storage', { status: fileResponse.status });
+    if (!url) {
+      return new NextResponse('Missing URL parameter', { status: 400 });
     }
 
-    // Get the file as a ReadableStream
-    const body = fileResponse.body as ReadableStream<Uint8Array>;
+    const response = await fetch(url);
+    if (!response.ok) {
+      return new NextResponse('Failed to fetch file', { status: response.status });
+    }
 
-    // Create a new response to stream back to the client
-    return new NextResponse(body, {
-      headers: {
-        'Content-Type': 'application/pdf',
-        'Content-Disposition': `attachment; filename="${fileName}"`,
-      },
+    // Get the content type from the response
+    const contentType = response.headers.get('content-type');
+    const blob = await response.blob();
+
+    // Create response with original content type and suggested filename
+    const headers = new Headers({
+      'Content-Type': contentType || 'application/octet-stream',
+      'Content-Disposition': `attachment; filename="${name || 'download'}"`,
+      'Cache-Control': 'no-cache'
     });
+
+    return new NextResponse(blob, { headers });
   } catch (error) {
-    console.error('Download proxy error:', error);
+    console.error('Download error:', error);
     return new NextResponse('Internal Server Error', { status: 500 });
   }
-} 
+}
+
+export const dynamic = 'force-dynamic'; 
