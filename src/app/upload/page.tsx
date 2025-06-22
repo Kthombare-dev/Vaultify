@@ -14,6 +14,7 @@ import { uploadFile, savePaperDetails, PaperDataToSave } from '@/lib/unified-ser
 
 const branches = [
   "Computer Science Engineering (CSE)",
+  "Computer Science and Information Technology (CSIT)",
   "Information Technology (IT)",
   "Electronics & Communication (EC)",
   "Electrical Engineering (EE)",
@@ -55,7 +56,8 @@ const academicYears = getAcademicYears();
 
 const paperTypes = [
   { value: "end-sem", label: "End Semester" },
-  { value: "mid-term", label: "Mid Term (MST)" },
+  { value: "mid-semester-test 1", label: "Mid Semester Test (MST-1)" },
+  { value: "mid-semester-test 2", label: "Mid Semester Test (MST-2)" },
   { value: "other", label: "Other" }
 ];
 

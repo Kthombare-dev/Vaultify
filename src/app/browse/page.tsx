@@ -20,6 +20,7 @@ interface FiltersState {
   branch: string;
   semester: string;
   academicYear: string;
+  paperType: string;
 }
 
 // --- ShineBorder Component ---
@@ -78,6 +79,7 @@ function FilterControls({
   const branches = useMemo(() => [...new Set(papers.map(p => p.branch))].sort(), [papers]);
   const semesters = useMemo(() => [...new Set(papers.map(p => p.semester))].sort((a, b) => parseInt(a) - parseInt(b)), [papers]);
   const academicYears = useMemo(() => [...new Set(papers.map(p => p.academicYear))].sort().reverse(), [papers]);
+  const paperTypes = useMemo(() => [...new Set(papers.map(p => p.paperType))].sort(), [papers]);
 
   const handleFilterChange = (key: keyof FiltersState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value === 'all' ? '' : value }));
@@ -85,7 +87,7 @@ function FilterControls({
   
   const resetFilters = () => {
     setSearchQuery('');
-    setFilters({ branch: '', semester: '', academicYear: '' });
+    setFilters({ branch: '', semester: '', academicYear: '', paperType: '' });
   };
 
   return (
@@ -95,8 +97,8 @@ function FilterControls({
       transition={{ duration: 0.5, delay: 0.1 }}
       className="mb-8 p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-800/50 shadow-md"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="relative col-span-1 md:col-span-2 lg:col-span-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="relative col-span-1 md:col-span-2 lg:col-span-5">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
           <Input 
             placeholder="Search by subject name or code..."
@@ -124,6 +126,17 @@ function FilterControls({
           <SelectContent>
             <SelectItem value="all">All Years</SelectItem>
             {academicYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={filters.paperType} onValueChange={(value) => handleFilterChange('paperType', value)}>
+          <SelectTrigger><SelectValue placeholder="All Paper Types" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Paper Types</SelectItem>
+            {paperTypes.map(t => (
+              <SelectItem key={t} value={t}>
+                {t.replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
         <Button variant="ghost" onClick={resetFilters} className="flex items-center gap-2">
@@ -240,6 +253,7 @@ export default function BrowsePage() {
     branch: '',
     semester: '',
     academicYear: '',
+    paperType: '',
   });
 
   const filteredPapers = useMemo(() => {
@@ -252,8 +266,9 @@ export default function BrowsePage() {
       const branchMatch = filters.branch ? paper.branch === filters.branch : true;
       const semesterMatch = filters.semester ? paper.semester === filters.semester : true;
       const yearMatch = filters.academicYear ? paper.academicYear === filters.academicYear : true;
+      const typeMatch = filters.paperType ? paper.paperType === filters.paperType : true;
 
-      return searchMatch && branchMatch && semesterMatch && yearMatch;
+      return searchMatch && branchMatch && semesterMatch && yearMatch && typeMatch;
     });
   }, [papers, searchQuery, filters]);
 
