@@ -42,13 +42,10 @@ const semesters = [
 const getAcademicYears = () => {
   const currentYear = new Date().getFullYear();
   const years = [];
-  for (let i = 2; i >= 1; i--) {
+  for (let i = 2; i >= 0; i--) {
     const year = currentYear - i;
     years.push(`${year}-${(year + 1).toString().slice(-2)}`);
   }
-  years.push(`${currentYear}-${(currentYear + 1).toString().slice(-2)}`);
-  const nextYear = currentYear + 1;
-  years.push(`${nextYear}-${(nextYear + 1).toString().slice(-2)}`);
   return years;
 };
 

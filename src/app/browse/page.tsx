@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Clock, Code, Library, Calendar, FileType, Eye, Loader2, Search, X } from 'lucide-react';
+import { Download, Clock, Code, Library, Calendar, FileType, Eye, Loader2, Search, X, Home, Upload, Brain } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { getAllPapers, PaperData } from '@/lib/unified-services';
 import { formatDistanceToNow } from 'date-fns';
@@ -18,6 +18,9 @@ import "yet-another-react-lightbox/styles.css";
 import ShineBorder from '@/components/magicui/shine-border';
 import { MagicCard } from "@/components/magicui/magic-card";
 import { useSearchParams } from 'next/navigation';
+import { SemesterSelectDialog } from '@/components/ui/semester-select-dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import Link from 'next/link';
 
 interface FiltersState {
   branch: string;
@@ -25,6 +28,9 @@ interface FiltersState {
   academicYear: string;
   paperType: string;
 }
+
+// Create an array of semesters from 1 to 8
+const ALL_SEMESTERS = Array.from({ length: 8 }, (_, i) => (i + 1).toString());
 
 // --- Filter Controls ---
 function FilterControls({
@@ -41,7 +47,6 @@ function FilterControls({
   papers: PaperData[];
 }) {
   const branches = useMemo(() => Array.from(new Set(papers.map(p => p.branch))).sort(), [papers]);
-  const semesters = useMemo(() => Array.from(new Set(papers.map(p => p.semester))).sort((a, b) => parseInt(a) - parseInt(b)), [papers]);
   const academicYears = useMemo(() => Array.from(new Set(papers.map(p => p.academicYear))).sort().reverse(), [papers]);
   const paperTypes = useMemo(() => Array.from(new Set(papers.map(p => p.paperType))).sort(), [papers]);
 
@@ -82,7 +87,7 @@ function FilterControls({
           <SelectTrigger><SelectValue placeholder="All Semesters" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Semesters</SelectItem>
-            {semesters.map(s => <SelectItem key={s} value={s}>Sem: {s}</SelectItem>)}
+            {ALL_SEMESTERS.map(s => <SelectItem key={s} value={s}>Sem: {s}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filters.academicYear} onValueChange={(value) => handleFilterChange('academicYear', value)}>
@@ -344,6 +349,7 @@ function BrowsePageContent() {
     academicYear: '',
     paperType: ''
   });
+  const [showSemesterDialog, setShowSemesterDialog] = useState(true);
 
   const searchParams = useSearchParams();
   const initialPaperType = searchParams.get('type') || '';
@@ -369,6 +375,10 @@ function BrowsePageContent() {
     fetchPapers();
   }, []);
 
+  const handleSemesterSelect = (semester: string) => {
+    setFilters(prev => ({ ...prev, semester }));
+  };
+
   const handleViewPaper = (paper: PaperData) => {
     setSelectedPaper(paper);
   };
@@ -393,6 +403,12 @@ function BrowsePageContent() {
     });
   }, [papers, searchQuery, filters]);
 
+  const semesters = useMemo(() => {
+    if (!papers.length) return [];
+    return Array.from(new Set(papers.map(p => p.semester)))
+      .sort((a, b) => parseInt(a) - parseInt(b));
+  }, [papers]);
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
@@ -404,55 +420,80 @@ function BrowsePageContent() {
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="mb-8"
-      >
-        <h1 className="text-4xl font-bold mb-2">Browse Papers</h1>
-        <p className="text-gray-600 dark:text-gray-400">
-          Search and filter through our collection of papers, assignments, and study materials
-        </p>
-      </motion.div>
-
-      <FilterControls
-        searchQuery={searchQuery}
-        setSearchQuery={setSearchQuery}
-        filters={filters}
-        setFilters={setFilters}
-        papers={papers}
-      />
-
-      {loading ? (
-        <div className="flex items-center justify-center min-h-[40vh]">
-          <Loader2 className="h-8 w-8 animate-spin" />
-        </div>
-      ) : (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-8">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+          className="text-center mb-8"
         >
-          {filteredPapers.map((paper) => (
-            <PaperCard
-              key={paper.id}
-              paper={paper}
-              onView={handleViewPaper}
-            />
-          ))}
+          <h1 className="text-4xl font-bold mb-2">Browse Papers</h1>
+          <p className="text-gray-600 dark:text-gray-300">
+            Search and filter through our collection of papers, assignments, and study materials
+          </p>
         </motion.div>
-      )}
 
-      {selectedPaper && (
-        <PdfViewer
-          fileUrl={selectedPaper.fileUrl}
-          fileName={selectedPaper.fileName || `${selectedPaper.subjectName}_${selectedPaper.subjectCode}`}
-          onClose={handleCloseViewer}
+        <FilterControls
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
+          filters={filters}
+          setFilters={setFilters}
+          papers={papers}
         />
-      )}
+
+        {loading ? (
+          <div className="flex items-center justify-center min-h-[40vh]">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        ) : (
+          <>
+            {filteredPapers.length === 0 ? (
+              <Alert className="my-8">
+                <AlertDescription>
+                  {filters.semester ? (
+                    <>
+                      No papers found for Semester {filters.semester}.
+                      {papers.length > 0 && " Try selecting a different semester or adjusting other filters."}
+                    </>
+                  ) : (
+                    "No papers found for the selected filters. Try adjusting your search criteria."
+                  )}
+                </AlertDescription>
+              </Alert>
+            ) : (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.5 }}
+                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+              >
+                {filteredPapers.map((paper) => (
+                  <PaperCard
+                    key={paper.id}
+                    paper={paper}
+                    onView={handleViewPaper}
+                  />
+                ))}
+              </motion.div>
+            )}
+          </>
+        )}
+
+        {selectedPaper && (
+          <PdfViewer
+            fileUrl={selectedPaper.fileUrl}
+            fileName={selectedPaper.fileName || `${selectedPaper.subjectName}_${selectedPaper.subjectCode}`}
+            onClose={handleCloseViewer}
+          />
+        )}
+
+        <SemesterSelectDialog
+          isOpen={showSemesterDialog}
+          onClose={() => setShowSemesterDialog(false)}
+          onSelect={handleSemesterSelect}
+        />
+      </div>
     </div>
   );
 }

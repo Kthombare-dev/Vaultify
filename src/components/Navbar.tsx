@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Menu, Home, Upload, BookOpen, Brain } from 'lucide-react';
 import { AnimatedLogo } from '@/components/AnimatedLogo';
+import { LoadingOverlay } from "@/components/ui/loading-overlay";
 import { cn } from "@/lib/utils";
 
 const menuItems = [
@@ -20,67 +21,84 @@ const menuItems = [
 export function Navbar() {
   const [isVisible, setIsVisible] = useState(true);
   const [lastScrollY, setLastScrollY] = useState(0);
+  const [isOpen, setIsOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const pathname = usePathname();
+  const router = useRouter();
 
   useEffect(() => {
     const controlNavbar = () => {
       if (typeof window !== 'undefined') {
         if (window.scrollY > lastScrollY && window.scrollY > 100) {
-          // if scroll down hide the navbar
           setIsVisible(false);
         } else {
-          // if scroll up show the navbar
           setIsVisible(true);
         }
-        // remember current page location to use in the next move
         setLastScrollY(window.scrollY);
       }
     };
 
     if (typeof window !== 'undefined') {
       window.addEventListener('scroll', controlNavbar);
-
-      // cleanup function
       return () => {
         window.removeEventListener('scroll', controlNavbar);
       };
     }
   }, [lastScrollY]);
 
+  // Reset loading state when pathname changes
+  useEffect(() => {
+    setIsLoading(false);
+    setIsOpen(false);
+  }, [pathname]);
+
+  const handleNavigation = (href: string) => {
+    if (href !== pathname) {
+      setIsLoading(true);
+      router.push(href);
+    }
+  };
+
   return (
-    <motion.nav
-      animate={{ y: isVisible ? 0 : -100 }}
-      transition={{ duration: 0.3 }}
-      className="sticky top-0 z-50 flex items-center justify-between bg-white/80 px-4 py-3 shadow-sm backdrop-blur-md dark:bg-gray-950/80 md:px-6"
-    >
-      <Link className="flex items-center gap-2" href="/">
-        <AnimatedLogo />
-      </Link>
+    <>
+      <LoadingOverlay isLoading={isLoading} />
+      <motion.nav
+        animate={{ y: isVisible ? 0 : -100 }}
+        transition={{ duration: 0.3 }}
+        className="sticky top-0 z-50 flex items-center justify-between bg-white/80 px-4 py-3 shadow-sm backdrop-blur-md dark:bg-gray-950/80 md:px-6"
+      >
+        <Link className="flex items-center gap-2" href="/">
+          <AnimatedLogo />
+        </Link>
 
-      {/* Desktop Menu */}
-      <div className="hidden items-center gap-6 md:flex">
-        {menuItems.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className={cn(
-              "text-sm font-medium transition-colors hover:text-primary",
-              pathname === item.href
-                ? "text-primary underline underline-offset-4"
-                : "text-muted-foreground"
-            )}
-          >
-            {item.label}
-          </Link>
-        ))}
-      </div>
+        {/* Desktop Menu */}
+        <div className="hidden items-center gap-6 md:flex">
+          {menuItems.map((item) => (
+            <button
+              key={item.href}
+              onClick={() => handleNavigation(item.href)}
+              className={cn(
+                "text-sm font-medium transition-colors hover:text-primary",
+                pathname === item.href
+                  ? "text-primary underline underline-offset-4"
+                  : "text-muted-foreground"
+              )}
+            >
+              {item.label}
+            </button>
+          ))}
+        </div>
 
-      {/* Mobile Menu */}
-      <div className="flex items-center gap-4 md:hidden">
-        <Sheet>
+        {/* Mobile Menu */}
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
           <SheetTrigger asChild>
-            <Button size="icon" variant="ghost" className="hover:bg-transparent">
-              <Menu className="h-6 w-6" />
+            <Button 
+              size="icon" 
+              variant="ghost" 
+              className="md:hidden relative p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+            >
+              <Menu className="h-6 w-6 text-gray-700 dark:text-gray-300" />
+              <span className="sr-only">Open menu</span>
             </Button>
           </SheetTrigger>
           <SheetContent side="right" className="w-full border-l-0 p-0 sm:max-w-sm">
@@ -94,9 +112,9 @@ export function Navbar() {
                     const Icon = item.icon;
                     const isActive = pathname === item.href;
                     return (
-                      <Link
+                      <button
                         key={item.href}
-                        href={item.href}
+                        onClick={() => handleNavigation(item.href)}
                         className={cn(
                           "flex items-center gap-3 rounded-lg px-4 py-3 text-sm font-medium transition-all",
                           isActive
@@ -109,7 +127,7 @@ export function Navbar() {
                           isActive ? "text-primary" : "text-gray-500 dark:text-gray-400"
                         )} />
                         {item.label}
-                      </Link>
+                      </button>
                     );
                   })}
                 </div>
@@ -122,7 +140,7 @@ export function Navbar() {
             </div>
           </SheetContent>
         </Sheet>
-      </div>
-    </motion.nav>
+      </motion.nav>
+    </>
   );
 } 

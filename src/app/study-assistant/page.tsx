@@ -6,9 +6,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, Send, Code, Calendar, Upload, FileText } from 'lucide-react';
+import { Loader2, Send, Code, Calendar, Upload, FileText, Home, BookOpen, Brain } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Inter, Outfit } from 'next/font/google';
+import Link from 'next/link';
 
 const outfit = Outfit({ subsets: ['latin'] });
 const inter = Inter({ subsets: ['latin'] });
@@ -222,7 +223,7 @@ export default function StudyAssistant() {
                 </div>
               </motion.div>
 
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
@@ -247,73 +248,22 @@ export default function StudyAssistant() {
         ) : (
           // Main Interface with Chat and Papers
           <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-            {/* Main Chat Area */}
-            <div className="w-full lg:flex-[0.7] flex flex-col gap-4 lg:gap-6 order-2 lg:order-1">
-              {/* Messages */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 min-h-[calc(100vh-400px)] sm:min-h-[calc(100vh-300px)] max-h-[calc(100vh-300px)] overflow-y-auto">
-                {messages.map((message, index) => (
-                  <motion.div
-                    key={index}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={`mb-4 ${
-                      message.role === 'assistant' 
-                        ? 'bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4' 
-                        : message.role === 'system'
-                        ? 'bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 text-center'
-                        : 'bg-green-50 dark:bg-green-900/20 rounded-2xl p-4 ml-auto max-w-[80%]'
-                    }`}
-                  >
-                    <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
-                  </motion.div>
-                ))}
-                {isProcessing && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="flex items-center gap-2 text-gray-500 dark:text-gray-400"
-                  >
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    <span>Processing...</span>
-                  </motion.div>
-                )}
-              </div>
-
-              {/* Question Input */}
-              {selectedPaper && (
-                <div className="flex gap-3 sticky bottom-0 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg">
-                  <Textarea
-                    placeholder="Ask a question about the paper..."
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    className="flex-1 rounded-xl resize-none"
-                    rows={2}
-                  />
-                  <Button
-                    onClick={handleAskQuestion}
-                    disabled={isProcessing || !inputMessage.trim()}
-                    className="self-end rounded-xl px-6"
-                  >
-                    {isProcessing ? (
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                    ) : (
-                      <Send className="h-5 w-5" />
-                    )}
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Papers Selection Panel */}
-            {showPapers && (
+            {/* Papers Selection Panel - Show only when no paper is selected on mobile */}
+            {(!selectedPaper || window.innerWidth >= 1024) && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
-                className="w-full lg:flex-[0.3] bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg p-4 sm:p-6 h-auto lg:h-[calc(100vh-300px)] overflow-y-auto border border-gray-100 dark:border-gray-700 order-1 lg:order-2"
+                className={`w-full ${selectedPaper ? 'lg:flex-[0.3]' : 'flex-1'} bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg p-4 sm:p-6 h-auto lg:h-[calc(100vh-300px)] overflow-y-auto border border-gray-100 dark:border-gray-700 order-1 lg:order-2`}
               >
-                <h2 className={`font-semibold mb-6 text-xl ${outfit.className}`}>Available Papers</h2>
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className={`font-semibold text-xl ${outfit.className}`}>Available Papers</h2>
+                  {selectedPaper && window.innerWidth < 1024 && (
+                    <Button variant="ghost" onClick={() => setSelectedPaper(null)} className="lg:hidden">
+                      Back to Papers
+                    </Button>
+                  )}
+                </div>
                 {loading ? (
                   <div className="flex items-center justify-center p-4">
                     <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
@@ -340,7 +290,7 @@ export default function StudyAssistant() {
                                   : "border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
                               }`}
                             >
-                              <div className="flex flex-col gap-2">
+                              <div className="space-y-2">
                                 <Badge 
                                   variant="outline" 
                                   className={`w-fit ${
@@ -368,6 +318,64 @@ export default function StudyAssistant() {
                   </div>
                 )}
               </motion.div>
+            )}
+
+            {/* Main Chat Area - Show only when paper is selected on mobile */}
+            {selectedPaper && (
+              <div className="w-full lg:flex-[0.7] flex flex-col gap-4 lg:gap-6 order-2 lg:order-1">
+                {/* Messages */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 min-h-[calc(100vh-400px)] sm:min-h-[calc(100vh-300px)] max-h-[calc(100vh-300px)] overflow-y-auto">
+                  {messages.map((message, index) => (
+                    <motion.div
+                      key={index}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className={`mb-4 ${
+                        message.role === 'assistant' 
+                          ? 'bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4' 
+                          : message.role === 'system'
+                          ? 'bg-gray-50 dark:bg-gray-700/50 rounded-2xl p-4 text-center'
+                          : 'bg-green-50 dark:bg-green-900/20 rounded-2xl p-4 ml-auto max-w-[80%]'
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap leading-relaxed">{message.content}</p>
+                    </motion.div>
+                  ))}
+                  {isProcessing && (
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      className="flex items-center gap-2 text-gray-500 dark:text-gray-400"
+                    >
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>Processing...</span>
+                    </motion.div>
+                  )}
+                </div>
+
+                {/* Question Input */}
+                <div className="flex gap-3 sticky bottom-0 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg">
+                  <Textarea
+                    placeholder="Ask a question about the paper..."
+                    value={inputMessage}
+                    onChange={(e) => setInputMessage(e.target.value)}
+                    className="flex-1 rounded-xl resize-none"
+                    rows={2}
+                  />
+                  <Button
+                    onClick={handleAskQuestion}
+                    disabled={isProcessing || !inputMessage.trim()}
+                    className="self-end rounded-xl px-6"
+                  >
+                    {isProcessing ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <Send className="h-5 w-5" />
+                    )}
+                  </Button>
+                </div>
+              </div>
             )}
           </div>
         )}
