@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, ReactNode, CSSProperties, useMemo } from 'react';
+import { useState, useEffect, ReactNode, CSSProperties, useMemo, Suspense } from 'react';
 import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -331,164 +331,141 @@ function PaperCard({ paper, onView }: { paper: PaperData, onView: (paper: PaperD
   );
 }
 
-export default function BrowsePage() {
-  const searchParams = useSearchParams();
+// Create a new component that uses useSearchParams
+function BrowsePageContent() {
   const [papers, setPapers] = useState<PaperData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  
-  // State for viewers
-  const [selectedPdf, setSelectedPdf] = useState<PaperData | null>(null);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
-
-  // States for filtering
+  const [selectedPaper, setSelectedPaper] = useState<PaperData | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState<FiltersState>({
     branch: '',
     semester: '',
     academicYear: '',
-    paperType: '',
+    paperType: ''
   });
 
-  // Initialize search query from URL params
+  const searchParams = useSearchParams();
+  const initialPaperType = searchParams.get('type') || '';
+
   useEffect(() => {
-    const searchFromUrl = searchParams.get('search');
-    if (searchFromUrl) {
-      setSearchQuery(decodeURIComponent(searchFromUrl));
+    if (initialPaperType) {
+      setFilters(prev => ({ ...prev, paperType: initialPaperType }));
     }
-  }, [searchParams]);
+  }, [initialPaperType]);
 
-  const filteredPapers = useMemo(() => {
-    return papers.filter(paper => {
-      const searchMatch = searchQuery.toLowerCase()
-        ? paper.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          paper.subjectCode.toLowerCase().includes(searchQuery.toLowerCase())
-        : true;
-      
-      const branchMatch = filters.branch ? paper.branch === filters.branch : true;
-      const semesterMatch = filters.semester ? paper.semester === filters.semester : true;
-      const yearMatch = filters.academicYear ? paper.academicYear === filters.academicYear : true;
-      const typeMatch = filters.paperType ? paper.paperType === filters.paperType : true;
-
-      return searchMatch && branchMatch && semesterMatch && yearMatch && typeMatch;
-    });
-  }, [papers, searchQuery, filters]);
+  const fetchPapers = async () => {
+    try {
+      const fetchedPapers = await getAllPapers();
+      setPapers(fetchedPapers);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch papers');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPapers = async () => {
-      try {
-        setLoading(true);
-        const papersData = await getAllPapers();
-        setPapers(papersData);
-      } catch (err) {
-        setError('Failed to fetch papers. Please try again later.');
-        console.error(err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchPapers();
   }, []);
 
   const handleViewPaper = (paper: PaperData) => {
-    const isImage = /\.(jpe?g|png|gif|webp)$/i.test(paper.fileName || '');
-    if (isImage) {
-      setSelectedImage(paper.fileUrl);
-    } else {
-      setSelectedPdf(paper);
-    }
+    setSelectedPaper(paper);
   };
 
   const handleCloseViewer = () => {
-    setSelectedPdf(null);
-    setSelectedImage(null);
+    setSelectedPaper(null);
   };
 
-  return (
-    <>
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="text-center mb-12"
-          >
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              Browse Question Papers
-            </h1>
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
-              Explore the collection of papers uploaded by the community.
-            </p>
-          </motion.div>
+  // Filter papers based on search query and filters
+  const filteredPapers = useMemo(() => {
+    return papers.filter(paper => {
+      const matchesSearch = searchQuery.toLowerCase() === '' ||
+        paper.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        paper.subjectCode.toLowerCase().includes(searchQuery.toLowerCase());
 
-          {!loading && !error && (
-            <FilterControls 
-              searchQuery={searchQuery}
-              setSearchQuery={setSearchQuery}
-              filters={filters}
-              setFilters={setFilters}
-              papers={papers}
-            />
-          )}
+      const matchesBranch = !filters.branch || paper.branch === filters.branch;
+      const matchesSemester = !filters.semester || paper.semester === filters.semester;
+      const matchesYear = !filters.academicYear || paper.academicYear === filters.academicYear;
+      const matchesType = !filters.paperType || paper.paperType === filters.paperType;
 
-          {loading && (
-            <div className="text-center">
-              <p>Loading papers...</p>
-            </div>
-          )}
+      return matchesSearch && matchesBranch && matchesSemester && matchesYear && matchesType;
+    });
+  }, [papers, searchQuery, filters]);
 
-          {error && (
-            <div className="text-center text-red-500">
-              <p>{error}</p>
-            </div>
-          )}
-
-          {!loading && !error && (
-            <motion.div 
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              {filteredPapers.map((paper, i) => (
-                <motion.div
-                  key={paper.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: i * 0.05 }}
-                >
-                  <PaperCard paper={paper} onView={() => handleViewPaper(paper)} />
-                </motion.div>
-              ))}
-            </motion.div>
-          )}
-
-          {!loading && filteredPapers.length === 0 && (
-            <div className="text-center text-gray-500 mt-16">
-              <p className="text-lg font-semibold">No papers found</p>
-              <p>Try adjusting your search or filters.</p>
-            </div>
-          )}
-        </div>
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+        <h2 className="text-2xl font-bold text-red-600 mb-4">Error Loading Papers</h2>
+        <p className="text-gray-600 dark:text-gray-400 mb-6">{error}</p>
+        <Button onClick={fetchPapers}>Try Again</Button>
       </div>
+    );
+  }
 
-      {selectedPdf && (
-        <PdfViewer 
-          fileUrl={selectedPdf.fileUrl}
-          fileName={selectedPdf.fileName || 'paper'}
-          onClose={handleCloseViewer} 
+  return (
+    <div className="container mx-auto px-4 py-8">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="mb-8"
+      >
+        <h1 className="text-4xl font-bold mb-2">Browse Papers</h1>
+        <p className="text-gray-600 dark:text-gray-400">
+          Search and filter through our collection of papers, assignments, and study materials
+        </p>
+      </motion.div>
+
+      <FilterControls
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        filters={filters}
+        setFilters={setFilters}
+        papers={papers}
+      />
+
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[40vh]">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      ) : (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5 }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {filteredPapers.map((paper) => (
+            <PaperCard
+              key={paper.id}
+              paper={paper}
+              onView={handleViewPaper}
+            />
+          ))}
+        </motion.div>
+      )}
+
+      {selectedPaper && (
+        <PdfViewer
+          fileUrl={selectedPaper.fileUrl}
+          fileName={selectedPaper.fileName || `${selectedPaper.subjectName}_${selectedPaper.subjectCode}`}
+          onClose={handleCloseViewer}
         />
       )}
-      
-      {selectedImage && (
-        <Lightbox
-          open={!!selectedImage}
-          close={handleCloseViewer}
-          slides={[{ src: selectedImage }]}
-        />
-      )}
-    </>
+    </div>
+  );
+}
+
+// Main component with Suspense boundary
+export default function BrowsePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    }>
+      <BrowsePageContent />
+    </Suspense>
   );
 } 
