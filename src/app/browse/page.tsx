@@ -17,6 +17,7 @@ import Lightbox from "yet-another-react-lightbox";
 import "yet-another-react-lightbox/styles.css";
 import ShineBorder from '@/components/magicui/shine-border';
 import { MagicCard } from "@/components/magicui/magic-card";
+import { useSearchParams } from 'next/navigation';
 
 interface FiltersState {
   branch: string;
@@ -331,6 +332,7 @@ function PaperCard({ paper, onView }: { paper: PaperData, onView: (paper: PaperD
 }
 
 export default function BrowsePage() {
+  const searchParams = useSearchParams();
   const [papers, setPapers] = useState<PaperData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -347,6 +349,14 @@ export default function BrowsePage() {
     academicYear: '',
     paperType: '',
   });
+
+  // Initialize search query from URL params
+  useEffect(() => {
+    const searchFromUrl = searchParams.get('search');
+    if (searchFromUrl) {
+      setSearchQuery(decodeURIComponent(searchFromUrl));
+    }
+  }, [searchParams]);
 
   const filteredPapers = useMemo(() => {
     return papers.filter(paper => {

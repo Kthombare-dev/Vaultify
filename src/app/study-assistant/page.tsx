@@ -189,7 +189,7 @@ export default function StudyAssistant() {
           transition={{ duration: 0.5 }}
           className="text-center mb-12"
         >
-          <h1 className={`text-4xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-3 ${outfit.className}`}>
+          <h1 className={`text-4xl sm:text-5xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400 mb-3 ${outfit.className}`}>
             AI Study Assistant
           </h1>
           <p className="text-lg text-gray-600 dark:text-gray-300">
@@ -200,13 +200,13 @@ export default function StudyAssistant() {
         {!showPapers && !selectedPaper ? (
           // Initial Options Screen
           <div className="flex-1 flex items-center justify-center mt-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl w-full">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 max-w-4xl w-full">
               <motion.div 
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
                 onClick={() => handleInitialChoice('upload')}
-                className="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-8 shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer border border-gray-100 dark:border-gray-700"
+                className="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 sm:p-8 shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer border border-gray-100 dark:border-gray-700"
               >
                 <div className="absolute top-0 right-0 -mt-4 -mr-4 h-32 w-32 rounded-full bg-gradient-to-br from-blue-400 to-purple-500 opacity-10 group-hover:opacity-20 transition-opacity" />
                 <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-32 w-32 rounded-full bg-gradient-to-tr from-blue-400 to-purple-500 opacity-10 group-hover:opacity-20 transition-opacity" />
@@ -227,7 +227,7 @@ export default function StudyAssistant() {
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5, delay: 0.1 }}
                 onClick={() => handleInitialChoice('existing')}
-                className="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-8 shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer border border-gray-100 dark:border-gray-700"
+                className="group relative overflow-hidden rounded-2xl bg-white dark:bg-gray-800 p-6 sm:p-8 shadow-lg transition-all duration-300 hover:shadow-2xl hover:scale-105 cursor-pointer border border-gray-100 dark:border-gray-700"
               >
                 <div className="absolute top-0 right-0 -mt-4 -mr-4 h-32 w-32 rounded-full bg-gradient-to-br from-emerald-400 to-green-500 opacity-10 group-hover:opacity-20 transition-opacity" />
                 <div className="absolute bottom-0 left-0 -mb-4 -ml-4 h-32 w-32 rounded-full bg-gradient-to-tr from-emerald-400 to-green-500 opacity-10 group-hover:opacity-20 transition-opacity" />
@@ -246,11 +246,11 @@ export default function StudyAssistant() {
           </div>
         ) : (
           // Main Interface with Chat and Papers
-          <div className="flex gap-6">
-            {/* Main Chat Area - 70% */}
-            <div className="flex-[0.7] flex flex-col gap-6">
+          <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+            {/* Main Chat Area */}
+            <div className="w-full lg:flex-[0.7] flex flex-col gap-4 lg:gap-6 order-2 lg:order-1">
               {/* Messages */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6 min-h-[calc(100vh-300px)] max-h-[calc(100vh-300px)] overflow-y-auto">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 min-h-[calc(100vh-400px)] sm:min-h-[calc(100vh-300px)] max-h-[calc(100vh-300px)] overflow-y-auto">
                 {messages.map((message, index) => (
                   <motion.div
                     key={index}
@@ -282,7 +282,7 @@ export default function StudyAssistant() {
 
               {/* Question Input */}
               {selectedPaper && (
-                <div className="flex gap-3">
+                <div className="flex gap-3 sticky bottom-0 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg">
                   <Textarea
                     placeholder="Ask a question about the paper..."
                     value={inputMessage}
@@ -305,13 +305,13 @@ export default function StudyAssistant() {
               )}
             </div>
 
-            {/* Papers Selection Panel - 30% */}
+            {/* Papers Selection Panel */}
             {showPapers && (
               <motion.div
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
-                className="flex-[0.3] bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg p-6 h-[calc(100vh-300px)] overflow-y-auto border border-gray-100 dark:border-gray-700"
+                className="w-full lg:flex-[0.3] bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg p-4 sm:p-6 h-auto lg:h-[calc(100vh-300px)] overflow-y-auto border border-gray-100 dark:border-gray-700 order-1 lg:order-2"
               >
                 <h2 className={`font-semibold mb-6 text-xl ${outfit.className}`}>Available Papers</h2>
                 {loading ? (
@@ -323,13 +323,13 @@ export default function StudyAssistant() {
                     {error}
                   </div>
                 ) : (
-                  <div className="space-y-6">
+                  <div className="space-y-4 sm:space-y-6">
                     {Object.entries(papersBySubject).map(([subject, subjectPapers]) => (
                       <div key={subject}>
                         <h3 className={`text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 ${outfit.className}`}>
                           {subject}
                         </h3>
-                        <div className="space-y-3">
+                        <div className="space-y-2 sm:space-y-3">
                           {subjectPapers.map((paper) => (
                             <div
                               key={paper.id}

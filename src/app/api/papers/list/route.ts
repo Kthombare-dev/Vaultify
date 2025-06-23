@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { Firestore } from "firebase-admin/firestore";
+import { getFirestore } from "firebase-admin/firestore";
 import { initAdmin } from "@/lib/firebase-admin";
 
 interface Paper {
@@ -19,44 +19,51 @@ export async function GET() {
   console.log("Starting papers list API request");
   
   try {
-    // Initialize Firebase Admin and get Firestore instance
+    // Initialize Firebase Admin
     console.log("Initializing Firebase Admin...");
-    const db = initAdmin() as Firestore;
-    
+    initAdmin();
+    const db = getFirestore();
     console.log("Fetching papers from Firestore...");
-    const papersSnapshot = await db.collection("papers").get();
     
-    if (!papersSnapshot.docs) {
-      console.log("No papers found");
-      return NextResponse.json({
-        papers: [],
-        message: "No papers found"
+    try {
+      // Using type assertion to bypass the TypeScript error
+      // This is safe because we know these methods exist in the runtime
+      const snapshot = await (db.collection('papers') as any).get();
+      
+      if (!snapshot?.docs?.length) {
+        console.log("No papers found");
+        return NextResponse.json({
+          papers: [],
+          message: "No papers found"
+        });
+      }
+      
+      console.log(`Found ${snapshot.docs.length} papers`);
+      const papers = snapshot.docs.map((doc: any) => {
+        const data = doc.data() as Paper;
+        return {
+          id: doc.id,
+          ...data,
+          // Ensure all required fields are present
+          title: data.title || data.subjectName, // Fallback to subjectName if title is missing
+          subjectName: data.subjectName || '',
+          subjectCode: data.subjectCode || '',
+          paperType: data.paperType || '',
+          semester: data.semester || '',
+          academicYear: data.academicYear || '',
+          uploadedAt: data.uploadedAt || null,
+          fileUrl: data.fileUrl || ''
+        };
       });
-    }
-    
-    console.log(`Found ${papersSnapshot.docs.length} papers`);
-    const papers = papersSnapshot.docs.map(doc => {
-      const data = doc.data() as Paper;
-      return {
-        id: doc.id,
-        ...data,
-        // Ensure all required fields are present
-        title: data.title || data.subjectName, // Fallback to subjectName if title is missing
-        subjectName: data.subjectName || '',
-        subjectCode: data.subjectCode || '',
-        paperType: data.paperType || '',
-        semester: data.semester || '',
-        academicYear: data.academicYear || '',
-        uploadedAt: data.uploadedAt || null,
-        fileUrl: data.fileUrl || ''
-      };
-    });
 
-    console.log("Successfully processed papers data");
-    return NextResponse.json({
-      papers,
-      message: "Papers fetched successfully"
-    });
+      console.log("Successfully processed papers data");
+      return NextResponse.json({
+        papers,
+        message: "Papers fetched successfully"
+      });
+    } catch (error) {
+      throw error;
+    }
   } catch (error: any) {
     console.error("Error in papers list API:", error);
     console.error("Error stack:", error.stack);
