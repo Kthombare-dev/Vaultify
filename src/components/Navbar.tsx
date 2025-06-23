@@ -14,7 +14,7 @@ const menuItems = [
   { href: '/', label: 'Home', icon: Home },
   { href: '/upload', label: 'Upload', icon: Upload },
   { href: '/browse', label: 'Browse Papers', icon: BookOpen },
-  { href: '/study-assistant', label: 'Study Assistant', icon: Brain },
+  { href: '/study-assistant', label: 'AI Study Assistant', icon: Brain },
 ];
 
 export function Navbar() {
