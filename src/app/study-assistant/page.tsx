@@ -70,6 +70,7 @@ export default function StudyAssistant() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedPaper, setSelectedPaper] = useState<PaperData | null>(null);
+  const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'system',
@@ -79,6 +80,7 @@ export default function StudyAssistant() {
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [showPapers, setShowPapers] = useState(false);
+  const [showSemesterSelect, setShowSemesterSelect] = useState(false);
 
   // Fetch papers on component mount
   useEffect(() => {
@@ -90,7 +92,6 @@ export default function StudyAssistant() {
           throw new Error(errorData.error || 'Failed to fetch papers');
         }
         const data = await response.json();
-        // Extract papers array from response
         const papersArray = data.papers || [];
         setPapers(Array.isArray(papersArray) ? papersArray : []);
       } catch (error) {
@@ -106,15 +107,86 @@ export default function StudyAssistant() {
 
   // Group papers by subject using useMemo
   const papersBySubject = useMemo(() => {
-    return papers.reduce((acc: { [key: string]: PaperData[] }, paper) => {
-      if (!paper?.subjectName) return acc; // Skip papers without subject name
+    const filteredPapers = selectedSemester 
+      ? papers.filter(paper => paper.semester === selectedSemester)
+      : papers;
+
+    return filteredPapers.reduce((acc: { [key: string]: PaperData[] }, paper) => {
+      if (!paper?.subjectName) return acc;
       if (!acc[paper.subjectName]) {
         acc[paper.subjectName] = [];
       }
       acc[paper.subjectName].push(paper);
       return acc;
     }, {});
-  }, [papers]);
+  }, [papers, selectedSemester]);
+
+  // Get all semesters 1-8
+  const ALL_SEMESTERS = useMemo(() => {
+    return Array.from({ length: 8 }, (_, i) => String(i + 1));
+  }, []);
+
+  // Check if semester has papers
+  const hasPapersForSemester = (semester: string) => {
+    return papers.some(paper => paper.semester === semester);
+  };
+
+  const handleSemesterSelect = (semester: string) => {
+    // Only proceed if the semester has papers
+    if (!hasPapersForSemester(semester)) {
+      return;
+    }
+    setSelectedSemester(semester);
+    setShowSemesterSelect(false);
+    setShowPapers(true);
+  };
+
+  const handleInitialChoice = (choice: 'upload' | 'existing') => {
+    if (choice === 'upload') {
+      router.push('/upload');
+    } else {
+      setShowSemesterSelect(true);
+    }
+  };
+
+  // Render semester selection screen
+  const renderSemesterSelection = () => (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="flex flex-col items-center justify-center mt-8"
+    >
+      <h2 className={`text-2xl font-semibold mb-6 ${outfit.className}`}>Select Your Semester</h2>
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 max-w-2xl w-full">
+        {ALL_SEMESTERS.map((semester) => {
+          const hasPapers = hasPapersForSemester(semester);
+          return (
+            <motion.div
+              key={semester}
+              className={`p-4 text-center rounded-xl bg-white dark:bg-gray-800 shadow-lg transition-all duration-300 border ${
+                hasPapers 
+                  ? 'hover:shadow-xl hover:scale-105 cursor-pointer border-gray-100 dark:border-gray-700' 
+                  : 'opacity-70 cursor-not-allowed border-gray-200 dark:border-gray-600'
+              }`}
+              whileHover={hasPapers ? { scale: 1.05 } : undefined}
+              whileTap={hasPapers ? { scale: 0.95 } : undefined}
+              onClick={hasPapers ? () => handleSemesterSelect(semester) : undefined}
+            >
+              <span className={`text-lg font-medium ${outfit.className}`}>
+                Semester {semester}
+              </span>
+              {!hasPapers && (
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  No papers available
+                </p>
+              )}
+            </motion.div>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
 
   const handlePaperSelect = async (paper: PaperData) => {
     setSelectedPaper(paper);
@@ -204,14 +276,6 @@ export default function StudyAssistant() {
     }
   };
 
-  const handleInitialChoice = (choice: 'upload' | 'existing') => {
-    if (choice === 'upload') {
-      router.push('/upload');
-    } else {
-      setShowPapers(true);
-    }
-  };
-
   return (
     <div className={`min-h-screen bg-gradient-to-b from-blue-50 to-white dark:from-gray-900 dark:to-gray-800 py-8 ${inter.className}`}>
       <div className="container mx-auto px-4">
@@ -233,7 +297,7 @@ export default function StudyAssistant() {
           <ProgressSteps currentStep={selectedPaper ? 2 : 1} />
         )}
 
-        {!showPapers && !selectedPaper ? (
+        {!showSemesterSelect && !showPapers && !selectedPaper ? (
           // Initial Options Screen
           <div className="flex-1 flex items-center justify-center mt-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 max-w-4xl w-full">
@@ -280,6 +344,9 @@ export default function StudyAssistant() {
               </motion.div>
             </div>
           </div>
+        ) : showSemesterSelect ? (
+          // Semester Selection Screen
+          renderSemesterSelection()
         ) : (
           // Main Interface with Chat and Papers
           <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
@@ -292,7 +359,9 @@ export default function StudyAssistant() {
                 className={`w-full ${selectedPaper ? 'lg:flex-[0.3] hidden lg:block' : 'flex-1'} bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg p-4 sm:p-6 h-auto lg:h-[calc(100vh-300px)] overflow-y-auto border border-gray-100 dark:border-gray-700 order-1 lg:order-2`}
               >
                 <div className="flex justify-between items-center mb-6">
-                  <h2 className={`font-semibold text-xl ${outfit.className}`}>Available Papers</h2>
+                  <h2 className={`font-semibold text-xl ${outfit.className}`}>
+                    Semester {selectedSemester} Papers
+                  </h2>
                   {selectedPaper && window.innerWidth < 1024 && (
                     <Button variant="ghost" onClick={() => setSelectedPaper(null)} className="lg:hidden">
                       Back to Papers
@@ -412,6 +481,20 @@ export default function StudyAssistant() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {showPapers && papers.length === 0 && selectedSemester && (
+          <div className="text-center p-8">
+            <p className="text-gray-600 dark:text-gray-300">
+              No papers available for Semester {selectedSemester}. Please select a different semester.
+            </p>
+            <Button 
+              onClick={() => setShowSemesterSelect(true)} 
+              className="mt-4"
+            >
+              Choose Different Semester
+            </Button>
           </div>
         )}
       </div>
