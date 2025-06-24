@@ -231,17 +231,27 @@ export default function StudyAssistant() {
   const startStudySession = async () => {
     if (selectedPapers.length === 0) return;
 
-    setIsPageLoading(true);
-    setIsProcessing(true);
-    setIsStudySessionStarted(true);
-
-    const papersList = selectedPapers.map(p => `${p.subjectName} - ${p.paperType}`).join(', ');
-    setMessages(prev => [...prev, {
-      role: 'user',
-      content: `I'd like to study these papers: ${papersList}`
-    }]);
-    
     try {
+      setIsPageLoading(true);
+      setIsProcessing(true);
+      
+      // First set study session started and add initial message
+      setIsStudySessionStarted(true);
+      const papersList = selectedPapers.map(p => `${p.subjectName} - ${p.paperType}`).join(', ');
+      
+      // Initialize messages array with system welcome and user paper selection
+      setMessages([
+        {
+          role: 'system',
+          content: 'Welcome to AI Study Assistant! How would you like to proceed?'
+        },
+        {
+          role: 'user',
+          content: `I'd like to study these papers: ${papersList}`
+        }
+      ]);
+
+      // Make API call
       const response = await fetch("/api/study-assistant", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -260,21 +270,25 @@ export default function StudyAssistant() {
       }
 
       const data = await response.json();
+      
+      // Add AI response and suggestions
       if (data.initialInsights) {
-        setMessages(prev => [...prev, {
-          role: 'assistant',
-          content: data.initialInsights
-        }]);
-        // Add suggested actions
-        setMessages(prev => [...prev, {
-          role: 'system',
-          content: 'To help you better understand these materials, you can:\n\n1. Ask questions about specific concepts from any of the papers\n\n2. Request comparisons between different papers\n\n3. Get a comprehensive summary of all materials\n\n4. Focus on particular topics across all papers\n\nHow would you like to proceed?'
-        }]);
+        setMessages(prev => [
+          ...prev,
+          {
+            role: 'assistant',
+            content: data.initialInsights
+          },
+          {
+            role: 'system',
+            content: 'To help you better understand these materials, you can:\n\n1. Ask questions about specific concepts from any of the papers\n\n2. Request comparisons between different papers\n\n3. Get a comprehensive summary of all materials\n\n4. Focus on particular topics across all papers\n\nHow would you like to proceed?'
+          }
+        ]);
       }
     } catch (error) {
       console.error("Error processing papers:", error);
       setError('Failed to process papers. Please try again.');
-      setMessages(prev => [...prev, {
+      setMessages([{
         role: 'assistant',
         content: 'Sorry, I encountered an error while processing the papers. Please try again.'
       }]);
