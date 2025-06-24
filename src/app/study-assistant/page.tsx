@@ -14,6 +14,41 @@ import Link from 'next/link';
 const outfit = Outfit({ subsets: ['latin'] });
 const inter = Inter({ subsets: ['latin'] });
 
+// Add Progress Steps Component
+function ProgressSteps({ currentStep }: { currentStep: 1 | 2 }) {
+  return (
+    <div className="flex justify-between items-center w-full max-w-xl mx-auto mb-8 relative">
+      {/* Connecting Line */}
+      <div className="absolute top-[22px] left-[15%] right-[15%] h-[2px] bg-gray-200">
+        <div 
+          className="h-full bg-blue-600 dark:bg-blue-400 transition-all duration-500 ease-in-out"
+          style={{ width: currentStep === 2 ? '100%' : '0%' }}
+        />
+      </div>
+
+      {/* Step 1 - Choose Paper */}
+      <div className="flex flex-col items-center z-10">
+        <div className={`rounded-full bg-white dark:bg-gray-800 p-4 ${
+          currentStep === 1 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'
+        }`}>
+          <BookOpen className="h-6 w-6" />
+        </div>
+        <span className="mt-2 text-xs font-medium uppercase">Choose Paper</span>
+      </div>
+
+      {/* Step 2 - AI Chat */}
+      <div className="flex flex-col items-center z-10">
+        <div className={`rounded-full bg-white dark:bg-gray-800 p-4 ${
+          currentStep === 2 ? 'text-blue-600 dark:text-blue-400' : 'text-gray-400'
+        }`}>
+          <Brain className="h-6 w-6" />
+        </div>
+        <span className="mt-2 text-xs font-medium uppercase">AI Chat</span>
+      </div>
+    </div>
+  );
+}
+
 interface Message {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -38,7 +73,7 @@ export default function StudyAssistant() {
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'system',
-      content: 'Welcome to Study Assistant! How would you like to proceed?'
+      content: 'Welcome to AI Study Assistant! How would you like to proceed?'
     }
   ]);
   const [inputMessage, setInputMessage] = useState('');
@@ -174,10 +209,6 @@ export default function StudyAssistant() {
       router.push('/upload');
     } else {
       setShowPapers(true);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Great! Please select a paper from the list below to begin studying.'
-      }]);
     }
   };
 
@@ -197,6 +228,10 @@ export default function StudyAssistant() {
             Your personal AI tutor to help you understand your study materials
           </p>
         </motion.div>
+
+        {showPapers && (
+          <ProgressSteps currentStep={selectedPaper ? 2 : 1} />
+        )}
 
         {!showPapers && !selectedPaper ? (
           // Initial Options Screen
@@ -254,7 +289,7 @@ export default function StudyAssistant() {
                 initial={{ opacity: 0, x: 20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.5 }}
-                className={`w-full ${selectedPaper ? 'lg:flex-[0.3]' : 'flex-1'} bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg p-4 sm:p-6 h-auto lg:h-[calc(100vh-300px)] overflow-y-auto border border-gray-100 dark:border-gray-700 order-1 lg:order-2`}
+                className={`w-full ${selectedPaper ? 'lg:flex-[0.3] hidden lg:block' : 'flex-1'} bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg p-4 sm:p-6 h-auto lg:h-[calc(100vh-300px)] overflow-y-auto border border-gray-100 dark:border-gray-700 order-1 lg:order-2`}
               >
                 <div className="flex justify-between items-center mb-6">
                   <h2 className={`font-semibold text-xl ${outfit.className}`}>Available Papers</h2>
