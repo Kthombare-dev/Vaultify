@@ -5,10 +5,12 @@ import {
   query, 
   orderBy, 
   serverTimestamp,
+  where,
   DocumentData,
   QueryDocumentSnapshot,
   Timestamp,
-  Firestore
+  Firestore,
+  and
 } from 'firebase/firestore';
 import { 
   ref, 
@@ -158,5 +160,33 @@ export const filterPapers = async (filters: {
   } catch (error) {
     console.error('Error filtering papers:', error);
     throw new Error('Failed to filter papers');
+  }
+};
+
+// Check if a paper already exists
+export const checkDuplicatePaper = async (paperData: {
+  subjectCode: string;
+  academicYear: string;
+  paperType: string;
+}): Promise<boolean> => {
+  if (!db) {
+    throw new Error('Firebase Firestore is not initialized');
+  }
+
+  try {
+    const papersQuery = query(
+      collection(db, 'papers'),
+      and(
+        where('subjectCode', '==', paperData.subjectCode),
+        where('academicYear', '==', paperData.academicYear),
+        where('paperType', '==', paperData.paperType)
+      )
+    );
+    
+    const querySnapshot = await getDocs(papersQuery);
+    return !querySnapshot.empty;
+  } catch (error) {
+    console.error('Error checking for duplicate paper:', error);
+    throw new Error('Failed to check for duplicate paper');
   }
 }; 

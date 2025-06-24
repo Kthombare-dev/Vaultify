@@ -70,8 +70,9 @@ export default function StudyAssistant() {
   const [papers, setPapers] = useState<PaperData[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPaper, setSelectedPaper] = useState<PaperData | null>(null);
+  const [selectedPapers, setSelectedPapers] = useState<PaperData[]>([]);
   const [selectedSemester, setSelectedSemester] = useState<string | null>(null);
+  const [windowWidth, setWindowWidth] = useState(0);
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'system',
@@ -83,6 +84,22 @@ export default function StudyAssistant() {
   const [showPapers, setShowPapers] = useState(false);
   const [showSemesterSelect, setShowSemesterSelect] = useState(false);
   const [isPageLoading, setIsPageLoading] = useState(false);
+  const [isStudySessionStarted, setIsStudySessionStarted] = useState(false);
+
+  // Handle window resize
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    // Set initial width
+    if (typeof window !== 'undefined') {
+      setWindowWidth(window.innerWidth);
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Fetch papers on component mount
   useEffect(() => {
@@ -200,13 +217,28 @@ export default function StudyAssistant() {
     </motion.div>
   );
 
-  const handlePaperSelect = async (paper: PaperData) => {
+  const handlePaperSelect = (paper: PaperData) => {
+    setSelectedPapers(prev => {
+      const isAlreadySelected = prev.some(p => p.id === paper.id);
+      if (isAlreadySelected) {
+        return prev.filter(p => p.id !== paper.id);
+      } else {
+        return [...prev, paper];
+      }
+    });
+  };
+
+  const startStudySession = async () => {
+    if (selectedPapers.length === 0) return;
+
     setIsPageLoading(true);
-    setSelectedPaper(paper);
     setIsProcessing(true);
+    setIsStudySessionStarted(true);
+
+    const papersList = selectedPapers.map(p => `${p.subjectName} - ${p.paperType}`).join(', ');
     setMessages(prev => [...prev, {
       role: 'user',
-      content: `I'd like to study ${paper.subjectName} - ${paper.paperType}`
+      content: `I'd like to study these papers: ${papersList}`
     }]);
     
     try {
@@ -214,15 +246,17 @@ export default function StudyAssistant() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          action: "select_paper",
-          paperId: paper.id,
-          fileUrl: paper.fileUrl
+          action: "select_papers",
+          papers: selectedPapers.map(paper => ({
+            paperId: paper.id,
+            fileUrl: paper.fileUrl
+          }))
         })
       });
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to process paper');
+        throw new Error(errorData.error || 'Failed to process papers');
       }
 
       const data = await response.json();
@@ -234,16 +268,17 @@ export default function StudyAssistant() {
         // Add suggested actions
         setMessages(prev => [...prev, {
           role: 'system',
-          content: 'To help you better understand this material, you can:\n\nFirst, ask specific questions about any concepts you\'d like to explore in detail.\n\nSecond, request a comprehensive summary of the entire content.\n\nThird, focus on particular topics that interest you most.\n\nPlease let me know how you\'d like to proceed, and I\'ll be happy to assist you.'
+          content: 'To help you better understand these materials, you can:\n\n1. Ask questions about specific concepts from any of the papers\n\n2. Request comparisons between different papers\n\n3. Get a comprehensive summary of all materials\n\n4. Focus on particular topics across all papers\n\nHow would you like to proceed?'
         }]);
       }
     } catch (error) {
-      console.error("Error processing paper:", error);
-      setError('Failed to process paper. Please try again.');
+      console.error("Error processing papers:", error);
+      setError('Failed to process papers. Please try again.');
       setMessages(prev => [...prev, {
         role: 'assistant',
-        content: 'Sorry, I encountered an error while processing the paper. Please try again.'
+        content: 'Sorry, I encountered an error while processing the papers. Please try again.'
       }]);
+      setIsStudySessionStarted(false);
     } finally {
       setIsProcessing(false);
       setIsPageLoading(false);
@@ -251,7 +286,7 @@ export default function StudyAssistant() {
   };
 
   const handleAskQuestion = async () => {
-    if (!inputMessage.trim() || !selectedPaper) return;
+    if (!inputMessage.trim() || !selectedPapers.length) return;
 
     const userMessage = inputMessage.trim();
     setInputMessage('');
@@ -264,7 +299,10 @@ export default function StudyAssistant() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action: "ask_question",
-          paperId: selectedPaper.id,
+          papers: selectedPapers.map(paper => ({
+            paperId: paper.id,
+            fileUrl: paper.fileUrl
+          })),
           question: userMessage
         })
       });
@@ -310,10 +348,10 @@ export default function StudyAssistant() {
           </motion.div>
 
           {showPapers && (
-            <ProgressSteps currentStep={selectedPaper ? 2 : 1} />
+            <ProgressSteps currentStep={isStudySessionStarted ? 2 : 1} />
           )}
 
-          {!showSemesterSelect && !showPapers && !selectedPaper ? (
+          {!showSemesterSelect && !showPapers ? (
             // Initial Options Screen
             <div className="flex-1 flex items-center justify-center mt-8">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-8 max-w-4xl w-full">
@@ -365,84 +403,118 @@ export default function StudyAssistant() {
             renderSemesterSelection()
           ) : (
             // Main Interface with Chat and Papers
-            <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-              {/* Papers Selection Panel - Show only when no paper is selected on mobile */}
-              {(!selectedPaper || window.innerWidth >= 1024) && (
+            <div className="flex flex-col items-center justify-center gap-4 lg:gap-6">
+              {/* Papers Selection Panel */}
+              {(!isStudySessionStarted || windowWidth >= 1024) && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5 }}
-                  className={`w-full ${selectedPaper ? 'lg:flex-[0.3] hidden lg:block' : 'flex-1'} bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg p-4 sm:p-6 h-auto lg:h-[calc(100vh-300px)] overflow-y-auto border border-gray-100 dark:border-gray-700 order-1 lg:order-2`}
+                  className={`mx-auto max-w-2xl w-full ${
+                    isStudySessionStarted ? 'lg:flex-[0.4] hidden lg:block' : 'flex-1'
+                  } bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 lg:order-2 flex flex-col`}
+                  style={{ height: '600px' }}
                 >
-                  <div className="flex justify-between items-center mb-6">
-                    <h2 className={`font-semibold text-xl ${outfit.className}`}>
-                      Semester {selectedSemester} Papers
-                    </h2>
-                    {selectedPaper && window.innerWidth < 1024 && (
-                      <Button variant="ghost" onClick={() => setSelectedPaper(null)} className="lg:hidden">
-                        Back to Papers
-                      </Button>
-                    )}
+                  {/* Header */}
+                  <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+                    <div className="flex justify-between items-center">
+                      <div className="flex items-center gap-2">
+                        <h2 className={`font-semibold text-xl ${outfit.className}`}>
+                          Semester {selectedSemester} Papers
+                        </h2>
+                        {selectedPapers.length > 0 && (
+                          <Badge variant="secondary" className="text-xs">
+                            {selectedPapers.length} selected
+                          </Badge>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  {loading ? (
-                    <div className="flex items-center justify-center p-4">
-                      <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-                    </div>
-                  ) : error ? (
-                    <div className="text-red-500 text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
-                      {error}
-                    </div>
-                  ) : (
-                    <div className="space-y-4 sm:space-y-6">
-                      {Object.entries(papersBySubject).map(([subject, subjectPapers]) => (
-                        <div key={subject}>
-                          <h3 className={`text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 ${outfit.className}`}>
-                            {subject}
-                          </h3>
-                          <div className="space-y-2 sm:space-y-3">
-                            {subjectPapers.map((paper) => (
-                              <div
-                                key={paper.id}
-                                onClick={() => handlePaperSelect(paper)}
-                                className={`cursor-pointer transition-all hover:shadow-md rounded-xl border p-3 ${
-                                  selectedPaper?.id === paper.id
-                                    ? "border-2 border-blue-500 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/20"
-                                    : "border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
-                                }`}
-                              >
-                                <div className="space-y-2">
-                                  <Badge 
-                                    variant="outline" 
-                                    className={`w-fit ${
-                                      selectedPaper?.id === paper.id 
-                                        ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' 
-                                        : ''
+
+                  {/* Scrollable Content */}
+                  <div className="flex-1 overflow-y-auto">
+                    <div className="p-4 sm:p-6 space-y-4">
+                      {loading ? (
+                        <div className="flex items-center justify-center p-4">
+                          <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                        </div>
+                      ) : error ? (
+                        <div className="text-red-500 text-center p-4 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                          {error}
+                        </div>
+                      ) : (
+                        Object.entries(papersBySubject).map(([subject, subjectPapers]) => (
+                          <div key={subject} className="relative">
+                            <h3 className={`text-sm font-medium text-gray-500 dark:text-gray-400 mb-3 ${outfit.className} sticky top-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm py-2 z-10`}>
+                              {subject}
+                            </h3>
+                            <div className="space-y-3">
+                              {subjectPapers.map((paper) => {
+                                const isSelected = selectedPapers.some(p => p.id === paper.id);
+                                return (
+                                  <div
+                                    key={paper.id}
+                                    onClick={() => handlePaperSelect(paper)}
+                                    className={`cursor-pointer transition-all hover:shadow-md rounded-xl border p-4 ${
+                                      isSelected
+                                        ? "border-2 border-blue-500 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/20"
+                                        : "border-gray-100 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-600 hover:bg-blue-50/30 dark:hover:bg-blue-900/10"
                                     }`}
                                   >
-                                    {paper.paperType}
-                                  </Badge>
-                                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                    <Code className="h-3.5 w-3.5" />
-                                    {paper.subjectCode}
+                                    <Badge 
+                                      variant="outline" 
+                                      className={`w-fit ${
+                                        isSelected
+                                          ? 'border-blue-500 text-blue-600 dark:border-blue-400 dark:text-blue-400' 
+                                          : ''
+                                      }`}
+                                    >
+                                      {paper.paperType}
+                                    </Badge>
+                                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-2">
+                                      <Code className="h-3.5 w-3.5" />
+                                      {paper.subjectCode}
+                                    </div>
+                                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                                      <Calendar className="h-3.5 w-3.5" />
+                                      {paper.academicYear}
+                                    </div>
                                   </div>
-                                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                    <Calendar className="h-3.5 w-3.5" />
-                                    {paper.academicYear}
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
+                                );
+                              })}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Fixed Footer */}
+                  {selectedPapers.length > 0 && (
+                    <div className="p-4 sm:p-6 border-t border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={() => setSelectedPapers([])}
+                        >
+                          Clear Selection
+                        </Button>
+                        <Button
+                          onClick={startStudySession}
+                          disabled={isProcessing}
+                          className="bg-black text-white hover:bg-gray-800 dark:bg-white dark:text-black dark:hover:bg-gray-200"
+                        >
+                          Start Studying {selectedPapers.length} Papers
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </motion.div>
               )}
 
-              {/* Main Chat Area - Show only when paper is selected on mobile */}
-              {selectedPaper && (
-                <div className="w-full lg:flex-[0.7] flex flex-col gap-4 lg:gap-6 order-2 lg:order-1">
+              {/* Main Chat Area */}
+              {isStudySessionStarted && (
+                <div className="w-full lg:w-[60%] flex flex-col gap-4 lg:gap-6 lg:order-1">
                   {/* Messages */}
                   <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 min-h-[calc(100vh-400px)] sm:min-h-[calc(100vh-300px)] max-h-[calc(100vh-300px)] overflow-y-auto">
                     {messages.map((message, index) => (
@@ -477,7 +549,7 @@ export default function StudyAssistant() {
                   {/* Question Input */}
                   <div className="flex gap-3 sticky bottom-0 bg-white dark:bg-gray-800 p-4 rounded-2xl shadow-lg">
                     <Textarea
-                      placeholder="Ask a question about the paper..."
+                      placeholder="Ask a question about any of the selected papers..."
                       value={inputMessage}
                       onChange={(e) => setInputMessage(e.target.value)}
                       className="flex-1 rounded-xl resize-none"

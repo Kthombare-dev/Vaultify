@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { uploadFile, savePaperDetails, PaperDataToSave } from '@/lib/unified-services';
+import { uploadFile, savePaperDetails, PaperDataToSave, checkDuplicatePaper } from '@/lib/unified-services';
 
 const branches = [
   "Computer Science Engineering (CSE)",
@@ -134,6 +134,24 @@ export default function UploadPage() {
 
     if (formData.paperType === 'other' && !formData.customPaperType.trim()) {
       alert('Please enter a custom paper type');
+      return;
+    }
+
+    // Check for duplicate papers before uploading
+    try {
+      const isDuplicate = await checkDuplicatePaper({
+        subjectCode: formData.subjectCode,
+        academicYear: formData.academicYear,
+        paperType: formData.paperType === 'other' ? formData.customPaperType : formData.paperType
+      });
+
+      if (isDuplicate) {
+        alert(`A paper for ${formData.subjectCode} (${formData.academicYear}) with type "${formData.paperType}" already exists. Please check and try again.`);
+        return;
+      }
+    } catch (error) {
+      console.error('Error checking for duplicates:', error);
+      alert('Failed to check for duplicate papers. Please try again.');
       return;
     }
 

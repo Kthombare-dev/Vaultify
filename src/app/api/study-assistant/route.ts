@@ -141,96 +141,137 @@ async function generateGeminiResponse(prompt: string, content: string, isImage: 
 
 export async function POST(request: Request) {
   try {
-    const { action, paperId, fileUrl, question } = await request.json();
+    const { action, papers, question } = await request.json();
 
     switch (action) {
-      case "select_paper": {
-        if (!paperId || !fileUrl) {
-          return NextResponse.json({ error: "Paper ID and URL are required" }, { status: 400 });
+      case "select_papers": {
+        if (!papers || !Array.isArray(papers) || papers.length === 0) {
+          return NextResponse.json({ error: "At least one paper is required" }, { status: 400 });
         }
 
         try {
-          // Fetch and cache paper content if not already cached
-          if (!paperContentCache.has(paperId)) {
-            console.log("Processing paper:", { paperId, fileUrl });
-            const { content, isImage } = await fetchPaperContent(fileUrl);
-            
-            if (!content) {
-              throw new Error('Failed to extract content from the file');
+          const processedPapers = [];
+          let combinedInsights = "";
+
+          // Process each paper
+          for (const { paperId, fileUrl } of papers) {
+            if (!paperId || !fileUrl) {
+              throw new Error("Paper ID and URL are required for each paper");
             }
-            
-            // Store both content and type information
-            paperContentCache.set(paperId, JSON.stringify({ content, isImage }));
 
-            const initialPrompt = `You are a professional study assistant who has just received a ${isImage ? 'image' : 'document'} to analyze. 
+            // Fetch and cache paper content if not already cached
+            if (!paperContentCache.has(paperId)) {
+              console.log("Processing paper:", { paperId, fileUrl });
+              const { content, isImage } = await fetchPaperContent(fileUrl);
+              
+              if (!content) {
+                throw new Error(`Failed to extract content from file: ${fileUrl}`);
+              }
+              
+              // Store both content and type information
+              paperContentCache.set(paperId, JSON.stringify({ content, isImage }));
 
-Please analyze the content thoroughly and provide a welcoming, professional response that:
-1. Starts with a warm greeting acknowledging that you've analyzed their material
-2. Briefly mentions 2-3 key topics you've identified, incorporating them naturally into your response
-3. Maintains a professional yet approachable tone
-4. Concludes by asking how you can help them study this material
+              const initialPrompt = `You are a professional study assistant who has just received a ${isImage ? 'image' : 'document'} to analyze. 
+This is one of multiple papers selected by the student.
 
-For example, you might say something like:
-"I've carefully reviewed your material on [subject]. I notice it covers several important concepts, including [topic 1] and [topic 2]. I'd be happy to help you understand these concepts better. Would you like to focus on a specific topic, or would you prefer a comprehensive overview of the material?"
+Please analyze the content thoroughly and provide a brief, focused summary that:
+1. Identifies the main subject or topic in plain text (no bold, italics, or other formatting)
+2. Lists 2-3 key concepts covered in natural language
+3. Uses a professional, conversational tone as if speaking directly to the student
+4. Avoids any special characters or formatting (like **, ##, _, or bullet points)
 
-Keep the response conversational and encouraging, but maintain a professional tone throughout. Avoid using any special formatting characters or markdown syntax.`;
+Keep the response concise and natural, as it will be combined with insights from other papers.`;
 
-            const initialInsights = await generateGeminiResponse(initialPrompt, content, isImage);
+              const paperInsights = await generateGeminiResponse(initialPrompt, content, isImage);
+              combinedInsights += `\n\nPaper Analysis:\n${paperInsights}`;
+              processedPapers.push(paperId);
+            }
+          }
+
+          // Generate a combined analysis if we have new insights
+          if (combinedInsights) {
+            const finalPrompt = `You are a professional study assistant. Based on the individual paper analyses below, provide a welcoming, professional response that:
+1. Starts with a warm, natural greeting acknowledging that you've analyzed their materials
+2. Presents key topics and connections between papers in a conversational way
+3. Uses natural language without any special formatting or symbols
+4. Writes numbers and lists in a natural way (e.g., "First," "Second," or "The first concept is...")
+5. Maintains a professional yet friendly tone as if having a face-to-face conversation
+6. Concludes by suggesting how you can help them study these materials together
+
+Remember:
+- Write as if you're speaking directly to the student
+- Avoid any markdown formatting (**, ##, _, etc.)
+- Use natural paragraph breaks instead of bullet points
+- Present lists in a flowing, narrative style
+- Keep the tone warm and professional
+
+Individual paper analyses:${combinedInsights}`;
+
+            const finalInsights = await generateGeminiResponse(finalPrompt, combinedInsights, false);
 
             return NextResponse.json({ 
-              message: "Paper processed successfully",
-              paperId,
-              initialInsights
+              message: "Papers processed successfully",
+              processedPapers,
+              initialInsights: finalInsights
             });
           }
 
           return NextResponse.json({ 
-            message: "Paper already processed",
-            paperId 
+            message: "Papers already processed",
+            processedPapers
           });
         } catch (error: unknown) {
-          console.error("Error processing paper:", error);
+          console.error("Error processing papers:", error);
           return NextResponse.json({ 
-            error: `Failed to process paper: ${error instanceof Error ? error.message : String(error)}` 
+            error: `Failed to process papers: ${error instanceof Error ? error.message : String(error)}` 
           }, { status: 500 });
         }
       }
 
       case "ask_question": {
-        if (!paperId || !question) {
-          return NextResponse.json({ error: "Paper ID and question are required" }, { status: 400 });
-        }
-
-        // Get paper content from cache
-        const cachedData = paperContentCache.get(paperId);
-        if (!cachedData) {
-          return NextResponse.json({ error: "Paper not found in cache. Please reselect the paper." }, { status: 404 });
+        if (!papers || !Array.isArray(papers) || papers.length === 0 || !question) {
+          return NextResponse.json({ error: "Papers and question are required" }, { status: 400 });
         }
 
         try {
-          const { content, isImage } = JSON.parse(cachedData);
+          let combinedContent = "";
+          let isAnyImage = false;
+
+          // Combine content from all papers
+          for (const { paperId } of papers) {
+            const cachedData = paperContentCache.get(paperId);
+            if (!cachedData) {
+              return NextResponse.json({ error: `Paper ${paperId} not found in cache. Please reselect the papers.` }, { status: 404 });
+            }
+
+            const { content, isImage } = JSON.parse(cachedData);
+            combinedContent += `\n\nPaper ${paperId} content:\n${content}`;
+            isAnyImage = isAnyImage || isImage;
+          }
           
-          const questionPrompt = `You are a professional study assistant helping a student understand their course material. 
+          const questionPrompt = `You are a professional study assistant helping a student understand multiple course materials. 
 The student asks: "${question}"
 
 Please provide a clear, well-structured response that:
-1. Uses natural, professional language (no markdown formatting like **, ##, or bullet points)
-2. Organizes information in clear paragraphs
-3. Uses proper transitions between ideas
-4. Numbers any lists or steps naturally (e.g., "First," "Second," "Third," or "The first advantage...")
-5. Maintains a professional yet conversational tone
-6. Uses indentation for sub-points (using spaces, not special characters)
+1. Uses natural, conversational language as if speaking directly to the student
+2. Organizes information in clear paragraphs with natural transitions
+3. Presents lists and steps in a narrative format (e.g., "First," "Next," "Finally")
+4. References specific papers naturally within the conversation
+5. Compares and contrasts information from different papers when appropriate
+6. Maintains a warm, professional tone throughout
+7. Avoids any special formatting characters or markdown syntax (**, ##, _, etc.)
 
-When listing multiple items:
-- Start with an introductory sentence
-- Present each item as a complete sentence or paragraph
-- Use proper transitions between items
-- Conclude with a summary if appropriate
+Remember to:
+- Write as if having a face-to-face conversation
+- Use natural paragraph breaks
+- Present information in a flowing, narrative style
+- Keep explanations clear and approachable
+- Use everyday language while maintaining professionalism
 
-Based on the content:
-${content}`;
+Based on the combined content from multiple papers:
+${combinedContent}`;
 
-          const answer = await generateGeminiResponse(questionPrompt, content, isImage);
+          const answer = await generateGeminiResponse(questionPrompt, combinedContent, isAnyImage);
           return NextResponse.json({ answer });
         } catch (error) {
           console.error("Error processing question:", error);
