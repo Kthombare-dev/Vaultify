@@ -413,7 +413,6 @@ export default function StudyAssistant() {
                   className={`mx-auto max-w-2xl w-full ${
                     isStudySessionStarted ? 'lg:flex-[0.4] hidden lg:block' : 'flex-1'
                   } bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 lg:order-2 flex flex-col`}
-                  style={{ height: '600px' }}
                 >
                   {/* Header */}
                   <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
@@ -432,7 +431,7 @@ export default function StudyAssistant() {
                   </div>
 
                   {/* Scrollable Content */}
-                  <div className="flex-1 overflow-y-auto">
+                  <div className="min-h-[calc(100vh-400px)] sm:min-h-[calc(100vh-300px)] max-h-[calc(100vh-300px)] overflow-y-auto">
                     <div className="p-4 sm:p-6 space-y-4">
                       {loading ? (
                         <div className="flex items-center justify-center p-4">
