@@ -53,6 +53,10 @@ export function Navbar() {
   }, [pathname]);
 
   const handleNavigation = (href: string) => {
+    // Always close the sidebar on mobile when any navigation item is clicked
+    setIsOpen(false);
+    
+    // Only trigger loading and navigation if going to a different page
     if (href !== pathname) {
       setIsLoading(true);
       router.push(href);
