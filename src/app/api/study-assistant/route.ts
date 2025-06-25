@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 // Cache for storing paper content
-const paperContentCache = new Map<string, string>();
+const paperContentCache = new Map<string, { content: string | ArrayBuffer; isImage: boolean; mimeType: string }>();
 
 // Rate limiting
 const REQUESTS_PER_MINUTE = 10;
@@ -33,7 +33,7 @@ async function getFileType(url: string): Promise<string> {
   }
 }
 
-async function fetchPaperContent(fileUrl: string): Promise<{ content: string; isImage: boolean }> {
+async function fetchPaperContent(fileUrl: string): Promise<{ content: string | ArrayBuffer; isImage: boolean; mimeType: string }> {
   try {
     const fileType = await getFileType(fileUrl);
     console.log('Detected file type:', fileType);
@@ -41,22 +41,35 @@ async function fetchPaperContent(fileUrl: string): Promise<{ content: string; is
     const isImage = ['jpg', 'jpeg', 'png'].includes(fileType);
     console.log('Content type:', isImage ? 'image' : 'text');
     
+    // Determine the correct MIME type
+    let mimeType = 'text/plain';
     if (isImage) {
-      // For images, fetch and convert to base64
-      const response = await fetch(fileUrl);
-      if (!response.ok) throw new Error('Failed to fetch image');
+      switch (fileType) {
+        case 'jpg':
+        case 'jpeg':
+          mimeType = 'image/jpeg';
+          break;
+        case 'png':
+          mimeType = 'image/png';
+          break;
+      }
+    }
+    
+    // Fetch the content
+    const response = await fetch(fileUrl);
+    if (!response.ok) throw new Error('Failed to fetch content');
+    
+    if (isImage) {
+      // For images, keep as ArrayBuffer
       const arrayBuffer = await response.arrayBuffer();
-      const base64 = Buffer.from(arrayBuffer).toString('base64');
-      return { content: base64, isImage: true };
+      return { content: arrayBuffer, isImage: true, mimeType };
     } else {
-      // For text files, fetch and decode the content
-      const response = await fetch(fileUrl);
-      if (!response.ok) throw new Error('Failed to fetch paper content');
+      // For text files, decode to string
       const arrayBuffer = await response.arrayBuffer();
       const decoder = new TextDecoder('utf-8');
       const text = decoder.decode(arrayBuffer);
       console.log('Processing text file:', { fileType, contentLength: text.length });
-      return { content: text, isImage: false };
+      return { content: text, isImage: false, mimeType };
     }
   } catch (error: unknown) {
     console.error('Error fetching paper content:', error);
@@ -65,7 +78,7 @@ async function fetchPaperContent(fileUrl: string): Promise<{ content: string; is
   }
 }
 
-async function generateGeminiResponse(prompt: string, content: string, isImage: boolean) {
+async function generateGeminiResponse(prompt: string, content: string | ArrayBuffer, isImage: boolean, mimeType: string = 'text/plain') {
   try {
     if (!canMakeRequest()) {
       throw new Error('Rate limit exceeded. Please try again in a minute.');
@@ -76,30 +89,42 @@ async function generateGeminiResponse(prompt: string, content: string, isImage: 
     // Use different models for image and text content
     const model = isImage ? 'gemini-2.5-pro' : 'gemini-2.5-flash';
     
-    const body = {
-      contents: [
-        {
-          parts: isImage ? [
+    let body;
+    if (isImage) {
+      // Convert ArrayBuffer to base64 and ensure proper formatting
+      const base64Data = Buffer.from(content as ArrayBuffer).toString('base64');
+      
+      // Create the request body according to Gemini's API structure
+      body = {
+        contents: [{
+          parts: [
             {
-              inline_data: {
-                mime_type: "image/jpeg",
-                data: content
+              inlineData: {
+                mimeType: mimeType,
+                data: base64Data
               }
             },
             {
               text: prompt
             }
-          ] : [
-            {
-              text: `${prompt}\n\nContent to analyze:\n${content}`
-            }
           ]
-        }
-      ]
-    };
+        }]
+      };
 
-    console.log(`Using model: ${model} for ${isImage ? 'image' : 'text'} content`);
-    console.log('Processing content:', { isImage, contentType: isImage ? 'image/jpeg' : 'text' });
+      // Log the first few characters of base64 to verify format
+      console.log('Image data preview:', base64Data.substring(0, 50));
+    } else {
+      // For text, use the existing format
+      body = {
+        contents: [{
+          parts: [{
+            text: `${prompt}\n\nContent to analyze:\n${content}`
+          }]
+        }]
+      };
+    }
+
+    console.log(`Using model: ${model} for ${isImage ? 'image' : 'text'} content with mimeType: ${mimeType}`);
 
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
@@ -162,14 +187,14 @@ export async function POST(request: Request) {
             // Fetch and cache paper content if not already cached
             if (!paperContentCache.has(paperId)) {
               console.log("Processing paper:", { paperId, fileUrl });
-              const { content, isImage } = await fetchPaperContent(fileUrl);
+              const { content, isImage, mimeType } = await fetchPaperContent(fileUrl);
               
               if (!content) {
                 throw new Error(`Failed to extract content from file: ${fileUrl}`);
               }
               
-              // Store both content and type information
-              paperContentCache.set(paperId, JSON.stringify({ content, isImage }));
+              // Store content and type information directly
+              paperContentCache.set(paperId, { content, isImage, mimeType });
 
               const initialPrompt = `You are a professional study assistant who has just received a ${isImage ? 'image' : 'document'} to analyze. 
 This is one of multiple papers selected by the student.
@@ -182,7 +207,7 @@ Please analyze the content thoroughly and provide a brief, focused summary that:
 
 Keep the response concise and natural, as it will be combined with insights from other papers.`;
 
-              const paperInsights = await generateGeminiResponse(initialPrompt, content, isImage);
+              const paperInsights = await generateGeminiResponse(initialPrompt, content, isImage, mimeType);
               combinedInsights += `\n\nPaper Analysis:\n${paperInsights}`;
               processedPapers.push(paperId);
             }
@@ -207,7 +232,7 @@ Remember:
 
 Individual paper analyses:${combinedInsights}`;
 
-            const finalInsights = await generateGeminiResponse(finalPrompt, combinedInsights, false);
+            const finalInsights = await generateGeminiResponse(finalPrompt, combinedInsights, false, 'text/plain');
 
             return NextResponse.json({ 
               message: "Papers processed successfully",
@@ -244,7 +269,7 @@ Individual paper analyses:${combinedInsights}`;
               return NextResponse.json({ error: `Paper ${paperId} not found in cache. Please reselect the papers.` }, { status: 404 });
             }
 
-            const { content, isImage } = JSON.parse(cachedData);
+            const { content, isImage, mimeType } = cachedData;
             combinedContent += `\n\nPaper ${paperId} content:\n${content}`;
             isAnyImage = isAnyImage || isImage;
           }
@@ -271,7 +296,7 @@ Remember to:
 Based on the combined content from multiple papers:
 ${combinedContent}`;
 
-          const answer = await generateGeminiResponse(questionPrompt, combinedContent, isAnyImage);
+          const answer = await generateGeminiResponse(questionPrompt, combinedContent, isAnyImage, 'text/plain');
           return NextResponse.json({ answer });
         } catch (error) {
           console.error("Error processing question:", error);
