@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Clock, Code, Library, Calendar, FileType, Eye, Loader2, Search, X, Home, Upload, Brain } from 'lucide-react';
+import { Download, Clock, Code, Library, Calendar, FileType, Eye, Loader2, Search, X, Home, Upload, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { getAllPapers, PaperData } from '@/lib/unified-services';
 import { formatDistanceToNow } from 'date-fns';
@@ -56,7 +56,13 @@ function FilterControls({
   
   const resetFilters = () => {
     setSearchQuery('');
-    setFilters({ branch: '', semester: '', academicYear: '', paperType: '' });
+    // Keep the semester filter, reset everything else
+    setFilters(prev => ({ 
+      branch: '', 
+      semester: prev.semester, // Preserve semester
+      academicYear: '', 
+      paperType: '' 
+    }));
   };
 
   return (
@@ -83,13 +89,9 @@ function FilterControls({
             {branches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
           </SelectContent>
         </Select>
-        <Select value={filters.semester} onValueChange={(value) => handleFilterChange('semester', value)}>
-          <SelectTrigger><SelectValue placeholder="All Semesters" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Semesters</SelectItem>
-            {ALL_SEMESTERS.map(s => <SelectItem key={s} value={s}>Sem: {s}</SelectItem>)}
-          </SelectContent>
-        </Select>
+        <div className="flex items-center px-3 py-2 rounded-md border border-input bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
+          <span className="text-sm">Semester: {filters.semester}</span>
+        </div>
         <Select value={filters.academicYear} onValueChange={(value) => handleFilterChange('academicYear', value)}>
           <SelectTrigger><SelectValue placeholder="All Years" /></SelectTrigger>
           <SelectContent>
@@ -108,8 +110,13 @@ function FilterControls({
             ))}
           </SelectContent>
         </Select>
-        <Button variant="ghost" onClick={resetFilters} className="flex items-center gap-2">
-          <X className="h-4 w-4" /> Reset Filters
+        <Button 
+          variant="ghost" 
+          onClick={resetFilters} 
+          className="flex items-center gap-2"
+          title="Reset all filters except semester"
+        >
+          <X className="h-4 w-4" /> Reset Other Filters
         </Button>
       </div>
     </motion.div>
@@ -350,6 +357,10 @@ function BrowsePageContent() {
     paperType: ''
   });
   const [showSemesterDialog, setShowSemesterDialog] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [windowWidth, setWindowWidth] = useState(0);
+  const MOBILE_BREAKPOINT = 768; // md breakpoint
+  const PAPERS_PER_PAGE = windowWidth < MOBILE_BREAKPOINT ? 3 : 9;
 
   const searchParams = useSearchParams();
   const initialPaperType = searchParams.get('type') || '';
@@ -359,6 +370,26 @@ function BrowsePageContent() {
       setFilters(prev => ({ ...prev, paperType: initialPaperType }));
     }
   }, [initialPaperType]);
+
+  // Add window resize listener
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+    
+    // Set initial width
+    if (typeof window !== 'undefined') {
+      setWindowWidth(window.innerWidth);
+    }
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Reset to first page when screen size changes between mobile and desktop
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [PAPERS_PER_PAGE]);
 
   const fetchPapers = async () => {
     try {
@@ -390,10 +421,10 @@ function BrowsePageContent() {
   // Filter papers based on search query and filters
   const filteredPapers = useMemo(() => {
     return papers.filter(paper => {
-      const matchesSearch = searchQuery.toLowerCase() === '' ||
+      const matchesSearch = searchQuery.trim() === '' || 
         paper.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
         paper.subjectCode.toLowerCase().includes(searchQuery.toLowerCase());
-
+      
       const matchesBranch = !filters.branch || paper.branch === filters.branch;
       const matchesSemester = !filters.semester || paper.semester === filters.semester;
       const matchesYear = !filters.academicYear || paper.academicYear === filters.academicYear;
@@ -402,6 +433,18 @@ function BrowsePageContent() {
       return matchesSearch && matchesBranch && matchesSemester && matchesYear && matchesType;
     });
   }, [papers, searchQuery, filters]);
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredPapers.length / PAPERS_PER_PAGE);
+  const paginatedPapers = useMemo(() => {
+    const startIndex = (currentPage - 1) * PAPERS_PER_PAGE;
+    return filteredPapers.slice(startIndex, startIndex + PAPERS_PER_PAGE);
+  }, [filteredPapers, currentPage]);
+
+  // Reset to first page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, filters]);
 
   const semesters = useMemo(() => {
     if (!papers.length) return [];
@@ -462,20 +505,76 @@ function BrowsePageContent() {
                 </AlertDescription>
               </Alert>
             ) : (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ duration: 0.5 }}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
-              >
-                {filteredPapers.map((paper) => (
-                  <PaperCard
-                    key={paper.id}
-                    paper={paper}
-                    onView={handleViewPaper}
-                  />
-                ))}
-              </motion.div>
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                  className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8 min-h-[calc(100vh-400px)]"
+                >
+                  {paginatedPapers.map((paper) => (
+                    <PaperCard
+                      key={paper.id}
+                      paper={paper}
+                      onView={handleViewPaper}
+                    />
+                  ))}
+                  {/* Add empty placeholder cards if needed */}
+                  {paginatedPapers.length < PAPERS_PER_PAGE && 
+                    Array.from({ length: PAPERS_PER_PAGE - paginatedPapers.length }).map((_, index) => (
+                      <div 
+                        key={`placeholder-${index}`} 
+                        className={cn(
+                          "h-full rounded-xl border border-dashed border-gray-200 dark:border-gray-700",
+                          windowWidth < MOBILE_BREAKPOINT ? "md:hidden" : "hidden md:block"
+                        )}
+                      />
+                    ))
+                  }
+                </motion.div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                  <div className="flex justify-center items-center gap-2 mt-8">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                      className="px-4"
+                    >
+                      Prev
+                    </Button>
+                    
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                        <Button
+                          key={pageNum}
+                          variant={pageNum === currentPage ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={cn(
+                            "w-8 h-8",
+                            pageNum === currentPage && "bg-black text-white dark:bg-white dark:text-black"
+                          )}
+                        >
+                          {pageNum}
+                        </Button>
+                      ))}
+                    </div>
+
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                      className="px-4"
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
+              </>
             )}
           </>
         )}

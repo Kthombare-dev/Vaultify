@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Upload, FileText, CheckCircle, AlertCircle } from 'lucide-react';
+import { Upload, FileText, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { uploadFile, savePaperDetails, PaperDataToSave, checkDuplicatePaper } from '@/lib/unified-services';
 
@@ -75,6 +75,8 @@ export default function UploadPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [analysisMessage, setAnalysisMessage] = useState<string | null>(null);
 
   // Effect to reset the form after a successful upload
   useEffect(() => {
@@ -100,12 +102,58 @@ export default function UploadPage() {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
     if (file && allowedTypes.includes(file.type)) {
       setSelectedFile(file);
       setUploadStatus('idle');
+      setAnalysisMessage(null);
+      
+      // Auto-analyze file content
+      setIsAnalyzing(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        const response = await fetch('/api/extract-concepts', {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to analyze file');
+        }
+        
+        const data = await response.json();
+        
+        // Check if any meaningful data was extracted
+        const hasExtractedData = Object.values(data).some(value => value !== '');
+        
+        if (!hasExtractedData) {
+          setAnalysisMessage('Could not automatically extract details. Please fill in the form manually.');
+        } else {
+          setAnalysisMessage('Some details were automatically filled. Please review and complete any missing fields.');
+        }
+        
+        // Update form fields with extracted data
+        setFormData(prev => ({
+          ...prev,
+          subjectName: data.subjectName || prev.subjectName,
+          subjectCode: data.subjectCode || prev.subjectCode,
+          paperType: data.paperType || prev.paperType,
+          branch: data.branch || prev.branch,
+          semester: data.semester || prev.semester,
+          description: data.description || prev.description,
+          tags: data.tags || prev.tags
+        }));
+      } catch (error) {
+        console.error('Error analyzing file:', error);
+        setAnalysisMessage('Could not analyze the file. Please fill in the form manually.');
+      } finally {
+        setIsAnalyzing(false);
+      }
     } else {
       alert('Please select a valid PDF, JPG, or PNG file');
     }
@@ -241,78 +289,207 @@ export default function UploadPage() {
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div className="space-y-4">
                   <Label htmlFor="file-upload" className="text-base font-medium">Select PDF File *</Label>
-                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-blue-400 transition-colors">
+                  <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-8 text-center hover:border-blue-400 transition-colors relative">
                     <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                     <div className="space-y-2">
-                      <p className="text-sm text-gray-600 dark:text-gray-300">{selectedFile ? selectedFile.name : 'Click to upload or drag and drop'}</p>
+                      <p className="text-sm text-gray-600 dark:text-gray-300">
+                        {selectedFile ? selectedFile.name : 'Click to upload or drag and drop'}
+                      </p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">PDF, JPG, or PNG files only, max 10MB</p>
                     </div>
-                    <input id="file-upload" type="file" accept=".pdf,.jpg,.jpeg,.png" onChange={handleFileSelect} className="hidden" />
-                    <Button type="button" variant="outline" onClick={() => document.getElementById('file-upload')?.click()} className="mt-4">Choose File</Button>
+                    <input 
+                      id="file-upload" 
+                      type="file" 
+                      accept="application/pdf,image/jpeg,image/png" 
+                      capture="environment"
+                      onChange={handleFileSelect} 
+                      className="hidden" 
+                      disabled={isUploading}
+                    />
+                    <div className="flex flex-col sm:flex-row gap-2 justify-center mt-4">
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => document.getElementById('file-upload')?.click()} 
+                        disabled={isUploading}
+                      >
+                        Choose File
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          const input = document.getElementById('file-upload') as HTMLInputElement;
+                          if (input) {
+                            input.removeAttribute('capture');
+                            input.click();
+                            // Restore capture attribute after click
+                            setTimeout(() => input.setAttribute('capture', 'environment'), 1000);
+                          }
+                        }}
+                        disabled={isUploading}
+                      >
+                        <Upload className="w-4 h-4 mr-2" />
+                        Take Photo
+                      </Button>
+                    </div>
                   </div>
                 </div>
                 <Separator />
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="subjectName">Subject Name *</Label>
-                    <Input id="subjectName" value={formData.subjectName} onChange={(e) => handleInputChange('subjectName', e.target.value)} placeholder="e.g., Data Structures" required />
+                <div className="space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="subjectName">Subject Name *</Label>
+                      <Input 
+                        id="subjectName" 
+                        value={formData.subjectName} 
+                        onChange={(e) => handleInputChange('subjectName', e.target.value)} 
+                        placeholder="e.g., Data Structures" 
+                        disabled={isAnalyzing}
+                        required 
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="subjectCode">Subject Code *</Label>
+                      <Input 
+                        id="subjectCode" 
+                        value={formData.subjectCode} 
+                        onChange={(e) => handleInputChange('subjectCode', e.target.value)} 
+                        placeholder="e.g., CS-303" 
+                        disabled={isAnalyzing}
+                        required 
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="subjectCode">Subject Code *</Label>
-                    <Input id="subjectCode" value={formData.subjectCode} onChange={(e) => handleInputChange('subjectCode', e.target.value)} placeholder="e.g., CS-303" required />
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="semester">Semester *</Label>
+                      <Select 
+                        value={formData.semester} 
+                        onValueChange={(value) => handleInputChange('semester', value)}
+                        disabled={isAnalyzing}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select semester" /></SelectTrigger>
+                        <SelectContent>
+                          {semesters.map((sem) => (
+                            <SelectItem key={sem.value} value={sem.value}>{sem.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="academicYear">Academic Year *</Label>
+                      <Select 
+                        value={formData.academicYear} 
+                        onValueChange={(value) => handleInputChange('academicYear', value)}
+                        disabled={isAnalyzing}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
+                        <SelectContent>
+                          {academicYears.map((year) => (
+                            <SelectItem key={year} value={year}>{year}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="paperType">Paper Type *</Label>
+                      <Select 
+                        value={formData.paperType} 
+                        onValueChange={(value) => handleInputChange('paperType', value)}
+                        disabled={isAnalyzing}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
+                        <SelectContent>
+                          {paperTypes.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+
+                  {formData.paperType === 'other' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="customPaperType">Custom Paper Type *</Label>
+                      <Input 
+                        id="customPaperType" 
+                        value={formData.customPaperType} 
+                        onChange={(e) => handleInputChange('customPaperType', e.target.value)} 
+                        placeholder="e.g., Unit Test, Practical, Project, etc." 
+                        disabled={isAnalyzing}
+                        required 
+                      />
+                    </div>
+                  )}
+
                   <div className="space-y-2">
-                    <Label htmlFor="semester">Semester *</Label>
-                    <Select value={formData.semester} onValueChange={(value) => handleInputChange('semester', value)}>
-                      <SelectTrigger><SelectValue placeholder="Select semester" /></SelectTrigger>
-                      <SelectContent>{semesters.map((sem) => (<SelectItem key={sem.value} value={sem.value}>{sem.label}</SelectItem>))}</SelectContent>
+                    <Label htmlFor="branch">Branch *</Label>
+                    <Select 
+                      value={formData.branch} 
+                      onValueChange={(value) => handleInputChange('branch', value)}
+                      disabled={isAnalyzing}
+                    >
+                      <SelectTrigger><SelectValue placeholder="Select your branch" /></SelectTrigger>
+                      <SelectContent>
+                        {branches.map((branch) => (
+                          <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+                        ))}
+                      </SelectContent>
                     </Select>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="academicYear">Academic Year *</Label>
-                    <Select value={formData.academicYear} onValueChange={(value) => handleInputChange('academicYear', value)}>
-                      <SelectTrigger><SelectValue placeholder="Select year" /></SelectTrigger>
-                      <SelectContent>{academicYears.map((year) => (<SelectItem key={year} value={year}>{year}</SelectItem>))}</SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="paperType">Paper Type *</Label>
-                    <Select value={formData.paperType} onValueChange={(value) => handleInputChange('paperType', value)}>
-                      <SelectTrigger><SelectValue placeholder="Select type" /></SelectTrigger>
-                      <SelectContent>{paperTypes.map((type) => (<SelectItem key={type.value} value={type.value}>{type.label}</SelectItem>))}</SelectContent>
-                    </Select>
-                  </div>
+
+                  {formData.branch === 'Other' && (
+                    <div className="space-y-2">
+                      <Label htmlFor="customBranch">Custom Branch *</Label>
+                      <Input 
+                        id="customBranch" 
+                        value={formData.customBranch} 
+                        onChange={(e) => handleInputChange('customBranch', e.target.value)} 
+                        placeholder="e.g., Biomedical Engineering, Aerospace Engineering, etc." 
+                        disabled={isAnalyzing}
+                        required 
+                      />
+                    </div>
+                  )}
                 </div>
-                {formData.paperType === 'other' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="customPaperType">Custom Paper Type *</Label>
-                    <Input id="customPaperType" value={formData.customPaperType} onChange={(e) => handleInputChange('customPaperType', e.target.value)} placeholder="e.g., Unit Test, Practical, Project, etc." required />
-                  </div>
-                )}
-                <div className="space-y-2">
-                  <Label htmlFor="branch">Branch *</Label>
-                  <Select value={formData.branch} onValueChange={(value) => handleInputChange('branch', value)}>
-                    <SelectTrigger><SelectValue placeholder="Select your branch" /></SelectTrigger>
-                    <SelectContent>{branches.map((branch) => (<SelectItem key={branch} value={branch}>{branch}</SelectItem>))}</SelectContent>
-                  </Select>
-                </div>
-                {formData.branch === 'Other' && (
-                  <div className="space-y-2">
-                    <Label htmlFor="customBranch">Custom Branch *</Label>
-                    <Input id="customBranch" value={formData.customBranch} onChange={(e) => handleInputChange('customBranch', e.target.value)} placeholder="e.g., Biomedical Engineering, Aerospace Engineering, etc." required />
-                  </div>
-                )}
+
                 <Separator />
+
                 <div className="space-y-2">
                   <Label htmlFor="description">Description (Optional)</Label>
-                  <textarea id="description" value={formData.description} onChange={(e) => handleInputChange('description', e.target.value)} placeholder="Provide a brief description or any relevant details..." className="w-full min-h-[100px] p-2 border rounded-md" />
+                  <textarea 
+                    id="description" 
+                    value={formData.description} 
+                    onChange={(e) => handleInputChange('description', e.target.value)} 
+                    placeholder="Provide a brief description or any relevant details..." 
+                    className="w-full min-h-[100px] p-2 border rounded-md"
+                    disabled={isAnalyzing}
+                  />
                 </div>
+
                 <div className="space-y-2">
                   <Label htmlFor="tags">Tags (Optional, comma-separated)</Label>
-                  <Input id="tags" value={formData.tags} onChange={(e) => handleInputChange('tags', e.target.value)} placeholder="e.g., important, numericals, theory" />
+                  <Input 
+                    id="tags" 
+                    value={formData.tags} 
+                    onChange={(e) => handleInputChange('tags', e.target.value)} 
+                    placeholder="e.g., important, numericals, theory"
+                    disabled={isAnalyzing}
+                  />
                 </div>
+
+                {/* Analysis Message */}
+                {analysisMessage && (
+                  <div className={`mt-4 p-4 rounded-lg text-sm ${
+                    analysisMessage.includes('Could not') 
+                      ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200'
+                      : 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200'
+                  }`}>
+                    <p>{analysisMessage}</p>
+                  </div>
+                )}
 
                 {isUploading && (
                   <div className="space-y-2">
