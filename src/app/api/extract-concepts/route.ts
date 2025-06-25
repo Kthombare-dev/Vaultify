@@ -107,6 +107,8 @@ Extract these fields:
 5. Semester (1-8)
 6. Description (a brief 1-2 sentence description of the paper content)
 7. Tags (comma-separated keywords)
+8. College Name (e.g., "MIT College of Engineering", "COEP Technological University")
+9. University Name (e.g., "Savitribai Phule Pune University", "Mumbai University")
 
 Return EXACTLY this JSON structure with no additional text or formatting:
 {
@@ -116,7 +118,9 @@ Return EXACTLY this JSON structure with no additional text or formatting:
   "branch": "",
   "semester": "",
   "description": "",
-  "tags": ""
+  "tags": "",
+  "collegeName": "",
+  "universityName": ""
 }
 
 If you cannot determine any field with high confidence, leave it as an empty string. Do not make assumptions. Only include information that is clearly present in the content.`;
@@ -133,7 +137,7 @@ If you cannot determine any field with high confidence, leave it as an empty str
       const parsedResult = JSON.parse(cleanedResult);
       
       // Validate the parsed result has the expected structure
-      const expectedKeys = ['subjectName', 'subjectCode', 'paperType', 'branch', 'semester', 'description', 'tags'];
+      const expectedKeys = ['subjectName', 'subjectCode', 'paperType', 'branch', 'semester', 'description', 'tags', 'collegeName', 'universityName'];
       const hasAllKeys = expectedKeys.every(key => key in parsedResult);
       
       if (!hasAllKeys) {

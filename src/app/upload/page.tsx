@@ -69,7 +69,9 @@ export default function UploadPage() {
     paperType: '',
     customPaperType: '',
     description: '',
-    tags: ''
+    tags: '',
+    collegeName: '',
+    universityName: ''
   });
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -84,9 +86,18 @@ export default function UploadPage() {
       const timer = setTimeout(() => {
         // Reset form
         setFormData({
-          subjectName: '', subjectCode: '', semester: '', academicYear: '',
-          branch: '', customBranch: '', paperType: '', customPaperType: '',
-          description: '', tags: ''
+          subjectName: '', 
+          subjectCode: '', 
+          semester: '', 
+          academicYear: '',
+          branch: '', 
+          customBranch: '', 
+          paperType: '', 
+          customPaperType: '',
+          description: '', 
+          tags: '', 
+          collegeName: '', 
+          universityName: ''
         });
         setSelectedFile(null);
         setUploadProgress(0);
@@ -146,7 +157,9 @@ export default function UploadPage() {
           branch: data.branch || prev.branch,
           semester: data.semester || prev.semester,
           description: data.description || prev.description,
-          tags: data.tags || prev.tags
+          tags: data.tags || prev.tags,
+          collegeName: data.collegeName || prev.collegeName,
+          universityName: data.universityName || prev.universityName
         }));
       } catch (error) {
         console.error('Error analyzing file:', error);
@@ -167,11 +180,22 @@ export default function UploadPage() {
       return;
     }
 
-    const requiredFields = ['subjectName', 'subjectCode', 'semester', 'academicYear', 'branch', 'paperType'];
+    const requiredFields = [
+      'subjectName', 
+      'subjectCode', 
+      'semester', 
+      'academicYear', 
+      'branch', 
+      'paperType',
+      'collegeName',
+      'universityName'
+    ];
     const missingFields = requiredFields.filter(field => !formData[field as keyof typeof formData]);
     
     if (missingFields.length > 0) {
-      alert(`Please fill in all required fields: ${missingFields.join(', ')}`);
+      alert(`Please fill in all required fields: ${missingFields.map(field => 
+        field.replace(/([A-Z])/g, ' $1').toLowerCase()
+      ).join(', ')}`);
       return;
     }
 
@@ -229,6 +253,8 @@ export default function UploadPage() {
         fileName: fileName,
         fileUrl: fileUrl,
         fileSize: selectedFile.size,
+        collegeName: formData.collegeName,
+        universityName: formData.universityName
       };
 
       if (formData.branch === 'Other') {
@@ -470,6 +496,31 @@ export default function UploadPage() {
                       />
                     </div>
                   )}
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label htmlFor="collegeName">College Name *</Label>
+                      <Input 
+                        id="collegeName" 
+                        value={formData.collegeName} 
+                        onChange={(e) => handleInputChange('collegeName', e.target.value)} 
+                        placeholder="e.g., MIT College of Engineering" 
+                        disabled={isAnalyzing}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="universityName">University Name *</Label>
+                      <Input 
+                        id="universityName" 
+                        value={formData.universityName} 
+                        onChange={(e) => handleInputChange('universityName', e.target.value)} 
+                        placeholder="e.g., Rajiv Gandhi Proudyogiki Vishwavidyalaya" 
+                        disabled={isAnalyzing}
+                        required
+                      />
+                    </div>
+                  </div>
                 </div>
 
                 <Separator />

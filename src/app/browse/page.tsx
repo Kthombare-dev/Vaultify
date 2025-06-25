@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, Clock, Code, Library, Calendar, FileType, Eye, Loader2, Search, X, Home, Upload, Brain, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Download, Clock, Code, Library, Calendar, FileType, Eye, Loader2, Search, X, Home, Upload, Brain, ChevronLeft, ChevronRight, School, GraduationCap } from 'lucide-react';
 import { Separator } from '@/components/ui/separator';
 import { getAllPapers, PaperData } from '@/lib/unified-services';
 import { formatDistanceToNow } from 'date-fns';
@@ -27,6 +27,8 @@ interface FiltersState {
   semester: string;
   academicYear: string;
   paperType: string;
+  collegeName: string;
+  universityName: string;
 }
 
 // Create an array of semesters from 1 to 8
@@ -46,23 +48,27 @@ function FilterControls({
   setFilters: (f: FiltersState | ((prev: FiltersState) => FiltersState)) => void;
   papers: PaperData[];
 }) {
+  // Get unique values for filters
   const branches = useMemo(() => Array.from(new Set(papers.map(p => p.branch))).sort(), [papers]);
   const academicYears = useMemo(() => Array.from(new Set(papers.map(p => p.academicYear))).sort().reverse(), [papers]);
   const paperTypes = useMemo(() => Array.from(new Set(papers.map(p => p.paperType))).sort(), [papers]);
+  const colleges = useMemo(() => Array.from(new Set(papers.map(p => p.collegeName).filter(Boolean))).sort(), [papers]);
+  const universities = useMemo(() => Array.from(new Set(papers.map(p => p.universityName).filter(Boolean))).sort(), [papers]);
 
   const handleFilterChange = (key: keyof FiltersState, value: string) => {
     setFilters((prev) => ({ ...prev, [key]: value === 'all' ? '' : value }));
   };
   
   const resetFilters = () => {
+    setFilters({
+      branch: '',
+      semester: '',
+      academicYear: '',
+      paperType: '',
+      collegeName: '',
+      universityName: ''
+    });
     setSearchQuery('');
-    // Keep the semester filter, reset everything else
-    setFilters(prev => ({ 
-      branch: '', 
-      semester: prev.semester, // Preserve semester
-      academicYear: '', 
-      paperType: '' 
-    }));
   };
 
   return (
@@ -72,59 +78,102 @@ function FilterControls({
       transition={{ duration: 0.5, delay: 0.1 }}
       className="mb-8 p-4 bg-white/60 dark:bg-slate-900/60 backdrop-blur-sm rounded-xl border border-slate-200/50 dark:border-slate-800/50 shadow-md"
     >
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="relative col-span-1 md:col-span-2 lg:col-span-5">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
-          <Input 
-            placeholder="Search by subject name or code..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10"
-          />
+      <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="flex-1">
+            <Input
+              placeholder="Search papers..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <Button variant="outline" onClick={resetFilters} className="whitespace-nowrap">
+            <X className="h-4 w-4 mr-2" />
+            Clear Filters
+          </Button>
         </div>
-        <Select value={filters.branch} onValueChange={(value) => handleFilterChange('branch', value)}>
-          <SelectTrigger><SelectValue placeholder="All Branches" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Branches</SelectItem>
-            {branches.map(b => <SelectItem key={b} value={b}>{b}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <div className="flex items-center px-3 py-2 rounded-md border border-input bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400">
-          <span className="text-sm">Semester: {filters.semester}</span>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
+          <Select value={filters.branch || "all"} onValueChange={(value) => handleFilterChange('branch', value === "all" ? "" : value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Branch" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Branches</SelectItem>
+              {branches.map((branch) => (
+                <SelectItem key={branch} value={branch}>{branch}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.semester || "all"} onValueChange={(value) => handleFilterChange('semester', value === "all" ? "" : value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Semester" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Semesters</SelectItem>
+              {Array.from({ length: 8 }, (_, i) => (
+                <SelectItem key={i + 1} value={String(i + 1)}>Semester {i + 1}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.academicYear || "all"} onValueChange={(value) => handleFilterChange('academicYear', value === "all" ? "" : value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Academic Year" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Years</SelectItem>
+              {academicYears.map((year) => (
+                <SelectItem key={year} value={year}>{year}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.paperType || "all"} onValueChange={(value) => handleFilterChange('paperType', value === "all" ? "" : value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="Paper Type" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Types</SelectItem>
+              {paperTypes.map((type) => (
+                <SelectItem key={type} value={type}>{type.replace('-', ' ')}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.collegeName || "all"} onValueChange={(value) => handleFilterChange('collegeName', value === "all" ? "" : value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="College" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Colleges</SelectItem>
+              {colleges.map((college) => (
+                <SelectItem key={college} value={college}>{college}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={filters.universityName || "all"} onValueChange={(value) => handleFilterChange('universityName', value === "all" ? "" : value)}>
+            <SelectTrigger>
+              <SelectValue placeholder="University" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Universities</SelectItem>
+              {universities.map((university) => (
+                <SelectItem key={university} value={university}>{university}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
-        <Select value={filters.academicYear} onValueChange={(value) => handleFilterChange('academicYear', value)}>
-          <SelectTrigger><SelectValue placeholder="All Years" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Years</SelectItem>
-            {academicYears.map(y => <SelectItem key={y} value={y}>{y}</SelectItem>)}
-          </SelectContent>
-        </Select>
-        <Select value={filters.paperType} onValueChange={(value) => handleFilterChange('paperType', value)}>
-          <SelectTrigger><SelectValue placeholder="All Paper Types" /></SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Paper Types</SelectItem>
-            {paperTypes.map(t => (
-              <SelectItem key={t} value={t}>
-                {t.replace('-', ' ').split(' ').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button 
-          variant="ghost" 
-          onClick={resetFilters} 
-          className="flex items-center gap-2"
-          title="Reset all filters except semester"
-        >
-          <X className="h-4 w-4" /> Reset Other Filters
-        </Button>
       </div>
     </motion.div>
   );
 }
 
 function PaperCard({ paper, onView }: { paper: PaperData, onView: (paper: PaperData) => void }) {
-  const { subjectName, subjectCode, semester, academicYear, branch, paperType, fileUrl, uploadedAt, fileName: paperFileName } = paper;
+  const { subjectName, subjectCode, semester, academicYear, branch, paperType, fileUrl, uploadedAt, fileName: paperFileName, collegeName, universityName } = paper;
   const [isDownloading, setIsDownloading] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
@@ -290,6 +339,23 @@ function PaperCard({ paper, onView }: { paper: PaperData, onView: (paper: PaperD
                   <span className="font-medium">{academicYear}</span>
                 </div>
               </div>
+              <Separator className="my-2 bg-slate-200/50 dark:bg-slate-700/50" />
+              {(collegeName || universityName) && (
+                <div className="text-sm text-slate-600 dark:text-slate-300">
+                  {collegeName && (
+                    <div className="flex items-center gap-3 bg-blue-50/50 dark:bg-blue-900/20 p-2 rounded-lg">
+                      <School size={16} className="text-blue-500 dark:text-blue-400" />
+                      <span className="font-medium truncate" title={collegeName}>{collegeName}</span>
+                    </div>
+                  )}
+                  {universityName && (
+                    <div className="flex items-center gap-3 mt-2 bg-purple-50/50 dark:bg-purple-900/20 p-2 rounded-lg">
+                      <GraduationCap size={16} className="text-purple-500 dark:text-purple-400" />
+                      <span className="font-medium truncate" title={universityName}>{universityName}</span>
+                    </div>
+                  )}
+                </div>
+              )}
             </motion.div>
           </CardContent>
 
@@ -354,7 +420,9 @@ function BrowsePageContent() {
     branch: '',
     semester: '',
     academicYear: '',
-    paperType: ''
+    paperType: '',
+    collegeName: '',
+    universityName: ''
   });
   const [showSemesterDialog, setShowSemesterDialog] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
@@ -421,16 +489,28 @@ function BrowsePageContent() {
   // Filter papers based on search query and filters
   const filteredPapers = useMemo(() => {
     return papers.filter(paper => {
-      const matchesSearch = searchQuery.trim() === '' || 
-        paper.subjectName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        paper.subjectCode.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      const matchesBranch = !filters.branch || paper.branch === filters.branch;
-      const matchesSemester = !filters.semester || paper.semester === filters.semester;
-      const matchesYear = !filters.academicYear || paper.academicYear === filters.academicYear;
-      const matchesType = !filters.paperType || paper.paperType === filters.paperType;
+      // Apply search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        const matchesSearch = 
+          paper.subjectName.toLowerCase().includes(query) ||
+          paper.subjectCode.toLowerCase().includes(query) ||
+          paper.branch.toLowerCase().includes(query) ||
+          (paper.collegeName?.toLowerCase().includes(query) || false) ||
+          (paper.universityName?.toLowerCase().includes(query) || false);
+        
+        if (!matchesSearch) return false;
+      }
 
-      return matchesSearch && matchesBranch && matchesSemester && matchesYear && matchesType;
+      // Apply other filters
+      if (filters.branch && paper.branch !== filters.branch) return false;
+      if (filters.semester && paper.semester !== filters.semester) return false;
+      if (filters.academicYear && paper.academicYear !== filters.academicYear) return false;
+      if (filters.paperType && paper.paperType !== filters.paperType) return false;
+      if (filters.collegeName && paper.collegeName !== filters.collegeName) return false;
+      if (filters.universityName && paper.universityName !== filters.universityName) return false;
+
+      return true;
     });
   }, [papers, searchQuery, filters]);
 

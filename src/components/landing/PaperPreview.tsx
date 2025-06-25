@@ -5,7 +5,44 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardContent, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, Code, Calendar, School, GraduationCap } from 'lucide-react';
+import { PaperData } from '@/lib/unified-services';
+
+const samplePapers: Partial<PaperData>[] = [
+  {
+    subjectName: "Data Structures",
+    subjectCode: "CS201",
+    semester: "3",
+    academicYear: "2023-24",
+    branch: "Computer Science Engineering (CSE)",
+    paperType: "end-sem",
+    description: "Comprehensive coverage of fundamental data structures",
+    collegeName: "MIT College of Engineering",
+    universityName: "Savitribai Phule Pune University"
+  },
+  {
+    subjectName: "Linear Algebra",
+    subjectCode: "MA202",
+    semester: "2",
+    academicYear: "2023-24",
+    branch: "Mathematics",
+    paperType: "mid-semester-test 1",
+    description: "Coverage of matrices and vector spaces",
+    collegeName: "COEP Technological University",
+    universityName: "Mumbai University"
+  },
+  {
+    subjectName: "Quantum Physics",
+    subjectCode: "PH301",
+    semester: "4",
+    academicYear: "2023-24",
+    branch: "Physics",
+    paperType: "end-sem",
+    description: "Advanced quantum mechanics concepts",
+    collegeName: "IIT Bombay",
+    universityName: "IIT Bombay"
+  }
+];
 
 const PaperPreview = () => {
   return (
@@ -26,66 +63,55 @@ const PaperPreview = () => {
         </div>
 
         {/* Paper Preview Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8">
-          {/* Sample Paper 1 */}
-          <div className="group relative">
-            <Card className="h-full hover:shadow-lg transition-all duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-              <CardHeader className="space-y-1 pb-4">
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="text-xs sm:text-sm">Computer Science</Badge>
-                  <Badge variant="outline" className="text-xs sm:text-sm">2023</Badge>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4">
+          {samplePapers.map((paper, index) => (
+            <Card key={index} className="bg-white dark:bg-gray-800 shadow-lg hover:shadow-xl transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
+                      {paper.subjectName}
+                    </h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-300">{paper.subjectCode}</p>
+                  </div>
+                  <Badge variant="outline" className="ml-2">
+                    {paper.paperType?.replace('-', ' ')}
+                  </Badge>
                 </div>
-                <CardTitle className="text-base sm:text-lg text-gray-900 dark:text-white">Data Structures Mid Semester</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm sm:text-base text-gray-600 dark:text-gray-300 space-y-2">
-                  <p>• Binary Trees and Graph Theory</p>
-                  <p>• Time Complexity Analysis</p>
-                  <p>• Dynamic Programming</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sample Paper 2 */}
-          <div className="group relative">
-            <Card className="h-full hover:shadow-lg transition-all duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-              <CardHeader className="space-y-1 pb-4">
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="text-xs sm:text-sm">Mathematics</Badge>
-                  <Badge variant="outline" className="text-xs sm:text-sm">2023</Badge>
-                </div>
-                <CardTitle className="text-base sm:text-lg text-gray-900 dark:text-white">Linear Algebra Mid Term</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm sm:text-base text-gray-600 dark:text-gray-300 space-y-2">
-                  <p>• Vector Spaces</p>
-                  <p>• Matrix Operations</p>
-                  <p>• Eigenvalues and Eigenvectors</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Sample Paper 3 */}
-          <div className="group relative">
-            <Card className="h-full hover:shadow-lg transition-all duration-300 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
-              <CardHeader className="space-y-1 pb-4">
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary" className="text-xs sm:text-sm">Physics</Badge>
-                  <Badge variant="outline" className="text-xs sm:text-sm">2023</Badge>
-                </div>
-                <CardTitle className="text-base sm:text-lg text-gray-900 dark:text-white">Quantum Mechanics Quiz</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-sm sm:text-base text-gray-600 dark:text-gray-300 space-y-2">
-                  <p>• Wave Functions</p>
-                  <p>• Schrödinger Equation</p>
-                  <p>• Quantum States</p>
+                <div className="space-y-4">
+                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                    <p>• {paper.description}</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 text-sm">
+                    <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+                      <Code size={16} className="text-slate-500" />
+                      <span className="font-medium">Sem: {paper.semester}</span>
+                    </div>
+                    <div className="flex items-center gap-3 text-slate-600 dark:text-slate-300">
+                      <Calendar size={16} className="text-slate-500" />
+                      <span className="font-medium">{paper.academicYear}</span>
+                    </div>
+                  </div>
+                  {(paper.collegeName || paper.universityName) && (
+                    <div className="mt-2 text-sm text-slate-600 dark:text-slate-300">
+                      {paper.collegeName && (
+                        <div className="flex items-center gap-3">
+                          <School size={16} className="text-slate-500" />
+                          <span className="font-medium">{paper.collegeName}</span>
+                        </div>
+                      )}
+                      {paper.universityName && (
+                        <div className="flex items-center gap-3 mt-1">
+                          <GraduationCap size={16} className="text-slate-500" />
+                          <span className="font-medium">{paper.universityName}</span>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          </div>
+          ))}
         </div>
 
         {/* Call to Action */}

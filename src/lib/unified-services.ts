@@ -37,6 +37,8 @@ export interface PaperDataToSave {
   fileSize: number;
   customBranch?: string;
   customPaperType?: string;
+  collegeName: string;
+  universityName: string;
 }
 
 export interface PaperData extends PaperDataToSave {
