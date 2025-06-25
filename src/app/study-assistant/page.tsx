@@ -417,16 +417,16 @@ export default function StudyAssistant() {
             renderSemesterSelection()
           ) : (
             // Main Interface with Chat and Papers
-            <div className="flex flex-col items-center justify-center gap-4 lg:gap-6">
+            <div className="flex flex-col lg:flex-row items-start justify-between gap-4 lg:gap-6">
               {/* Papers Selection Panel */}
               {(!isStudySessionStarted || windowWidth >= 1024) && (
                 <motion.div
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ duration: 0.5 }}
-                  className={`mx-auto max-w-2xl w-full ${
-                    isStudySessionStarted ? 'lg:flex-[0.4] hidden lg:block' : 'flex-1'
-                  } bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 lg:order-2 flex flex-col`}
+                  className={`w-full ${
+                    isStudySessionStarted ? 'lg:w-[35%] hidden lg:block' : 'flex-1'
+                  } bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 sticky top-4 flex flex-col max-h-[calc(100vh-2rem)]`}
                 >
                   {/* Header */}
                   <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
@@ -527,9 +527,9 @@ export default function StudyAssistant() {
 
               {/* Main Chat Area */}
               {isStudySessionStarted && (
-                <div className="w-full lg:w-[60%] flex flex-col gap-4 lg:gap-6 lg:order-1">
+                <div className="w-full lg:w-[63%] flex flex-col gap-4 lg:gap-6">
                   {/* Messages */}
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 min-h-[calc(100vh-400px)] sm:min-h-[calc(100vh-300px)] max-h-[calc(100vh-300px)] overflow-y-auto">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-4 sm:p-6 min-h-[500px] max-h-[calc(100vh-12rem)] overflow-y-auto">
                     {messages.map((message, index) => (
                       <motion.div
                         key={index}

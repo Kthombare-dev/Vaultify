@@ -105,6 +105,24 @@ const Hero = () => {
           <ShimmerEffect />
         </div>
 
+        {/* Product Hunt Launch */}
+        <div className="flex justify-center mb-6 sm:mb-8">
+          <a 
+            href="https://www.producthunt.com/products/vaultify?embed=true&utm_source=badge-featured&utm_medium=badge&utm_source=badge-vaultify" 
+            target="_blank" 
+            rel="noopener noreferrer"
+            className="hover:opacity-90 transition-opacity"
+          >
+            <img 
+              src="https://api.producthunt.com/widgets/embed-image/v1/featured.svg?post_id=983499&theme=light&t=1750812763201" 
+              alt="Vaultify - AI Study Assistant & Smart Paper Management" 
+              width="250" 
+              height="54" 
+              style={{ width: '250px', height: '54px' }}
+            />
+          </a>
+        </div>
+
         {/* Main Heading */}
         <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl font-bold tracking-tight text-gray-900 dark:text-white mb-4 sm:mb-6 relative px-4 sm:px-6">
           Your Academic Resource
