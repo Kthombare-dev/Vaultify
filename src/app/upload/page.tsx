@@ -306,7 +306,7 @@ export default function UploadPage() {
                       className="hidden" 
                       disabled={isUploading}
                     />
-                    <div className="flex flex-col sm:flex-row gap-2 justify-center mt-4">
+                    <div className="mt-4 flex justify-center gap-4">
                       <Button 
                         type="button" 
                         variant="outline" 
@@ -333,6 +333,23 @@ export default function UploadPage() {
                         Take Photo
                       </Button>
                     </div>
+                    {/* Analysis Loading State */}
+                    {isAnalyzing && (
+                      <div className="mt-4 p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200 flex items-center justify-center space-x-2">
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        <p className="text-sm">Analyzing file content to auto-fill form fields...</p>
+                      </div>
+                    )}
+                    {/* Analysis Result Message */}
+                    {analysisMessage && !isAnalyzing && (
+                      <div className={`mt-4 p-3 rounded-lg text-sm ${
+                        analysisMessage.includes('Could not') 
+                          ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200'
+                          : 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200'
+                      }`}>
+                        <p>{analysisMessage}</p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <Separator />
@@ -479,17 +496,6 @@ export default function UploadPage() {
                     disabled={isAnalyzing}
                   />
                 </div>
-
-                {/* Analysis Message */}
-                {analysisMessage && (
-                  <div className={`mt-4 p-4 rounded-lg text-sm ${
-                    analysisMessage.includes('Could not') 
-                      ? 'bg-yellow-50 dark:bg-yellow-900/20 text-yellow-800 dark:text-yellow-200'
-                      : 'bg-blue-50 dark:bg-blue-900/20 text-blue-800 dark:text-blue-200'
-                  }`}>
-                    <p>{analysisMessage}</p>
-                  </div>
-                )}
 
                 {isUploading && (
                   <div className="space-y-2">
