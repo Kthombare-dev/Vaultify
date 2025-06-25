@@ -151,7 +151,7 @@ const Statistics = () => {
                 <Users className="w-6 h-6 sm:w-8 sm:h-8 text-blue-600 dark:text-blue-400" />
               </div>
               <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-                <Counter value={10000} suffix="+" />
+                <Counter value={1000} suffix="+" />
               </div>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Active Users</p>
             </div>
@@ -164,7 +164,7 @@ const Statistics = () => {
                 <BookOpen className="w-6 h-6 sm:w-8 sm:h-8 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 dark:text-white mb-2">
-                <Counter value={1000} suffix="+" />
+                <Counter value={100} suffix="+" />
               </div>
               <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">Papers Available</p>
             </div>

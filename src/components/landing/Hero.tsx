@@ -27,7 +27,7 @@ const stats: Stat[] = [
   {
     icon: FileText,
     value: '0',
-    countTo: 1000,
+    countTo: 100,
     label: 'Papers Available',
     suffix: '+'
   },
